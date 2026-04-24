@@ -985,8 +985,8 @@ function calc(){
     const sHoj=sNom/fi,eHoj=eNom/fi,ipHoj=ipNom/fi,vcHoj=vcNom/fi;
     const sobH=rH-sHoj-eHoj-ipHoj-vcHoj;
     const p0s=simS.pat[a],p0c=simC.pat[a];
-    const reNomRE=rendaExtraMensalNom(a,idApo,reHoje,idReIni,idReFim,infl,anosRet);
-    const reHojRE=reNomRE>0?reNomRE/fi:0;
+    const reNomMes=rendaExtraMensalNom(a,idApo,reHoje,idReIni,idReFim,infl,anosRet);
+    const reHojMes=reNomMes>0?reNomMes/fi:0;
     labR.push(''+(idApo+a));
     soH.push(p0s<=0?0:Math.max(0,Math.round(sobH)));
     saH.push(p0s<=0?0:Math.round(sHoj));
@@ -994,8 +994,8 @@ function calc(){
     ipH.push(p0s<=0?0:Math.round(ipHoj));
     vcH.push(p0s<=0?0:Math.round(vcHoj));
     deH.push(p0s<=0?Math.round(rH):Math.max(0,Math.round(-sobH)));
-    reH.push(Math.round(reHojRE));
-    reNomRe.push(Math.round(reNomRE));
+    reH.push(Math.round(reHojMes));
+    reNomRe.push(Math.round(reNomMes));
     soNs.push(p0s<=0?0:simS.disp[a]);saNs.push(simS.sN[a]);esNs.push(simS.eN[a]);
     ipNs.push(simS.iptuN[a]);vcNs.push(simS.veicN[a]);
     deNs.push(p0s<=0?simS.sN[a]+simS.eN[a]+simS.iptuN[a]+simS.veicN[a]:0);
@@ -1042,7 +1042,8 @@ function calc(){
     const reNomIni=rendaExtraMensalNom(0,idApo,reHoje,idReIni,idReFim,infl,anosRet);
     const anoIniRE=ANO+(idReIni-idade);
     const anoFimRE=ANO+(idReFim-idade);
-    const reNomFim=rendaExtraMensalNom(idReFim-idApo,idApo,reHoje,idReIni,idReFim,infl,anosRet);
+    const anoRelFim=Math.min(idReFim-idApo,n);
+    const reNomFim=rendaExtraMensalNom(anoRelFim,idApo,reHoje,idReIni,idReFim,infl,anosRet);
     const totalAnosRE=Math.max(0,idReFim-idReIni);
     document.getElementById('renda-extra-resumo').innerHTML=
       '<div class="flag-box" style="margin-top:10px">'+
