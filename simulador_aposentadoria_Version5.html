@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Aposentadoria</title>
+<style>
+:root{
+  --bg-page:#eeedea;--bg-card:#ffffff;--bg-sec:#f5f4f0;--bg-ter:#eeedea;
+  --bg-info:#e6f1fb;--bg-success:#eaf3de;--bg-warning:#faeeda;--bg-danger:#fcebeb;
+  --text-pri:#1a1a18;--text-sec:#6b6a63;--text-info:#0c447c;
+  --text-success:#27500a;--text-warning:#633806;--text-danger:#a32d2d;
+  --border:rgba(0,0,0,0.12);--border-md:rgba(0,0,0,0.22);
+  --radius-md:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg-page:#181816;--bg-card:#1e1e1c;--bg-sec:#2a2a27;--bg-ter:#232320;
+    --bg-info:#042c53;--bg-success:#173404;--bg-warning:#412402;--bg-danger:#501313;
+    --text-pri:#f0efe8;--text-sec:#a8a79f;--text-info:#b5d4f4;
+    --text-success:#c0dd97;--text-warning:#fac775;--text-danger:#f09595;
+    --border:rgba(255,255,255,0.10);--border-md:rgba(255,255,255,0.20);
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-page);color:var(--text-pri);min-height:100vh;padding:20px 16px 60px}
+.container{max-width:900px;margin:0 auto}
+h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.sub{font-size:14px;color:var(--text-sec);margin-bottom:24px}
+.section{background:var(--bg-card);border-radius:var(--radius-lg);border:0.5px solid var(--border);padding:18px 20px;margin-bottom:14px}
+.stitle{font-size:11px;font-weight:500;color:var(--text-sec);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.grp{font-size:12px;font-weight:500;color:var(--text-sec);margin:14px 0 8px;padding-top:14px;border-top:0.5px solid var(--border)}
+.grp:first-child{border-top:none;padding-top:0;margin-top:0}
+.srow{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.slabel{font-size:13px;color:var(--text-sec);min-width:220px;flex-shrink:0}
+.sval{font-size:13px;font-weight:500;min-width:130px;text-align:right;color:var(--text-pri)}
+input[type=range]{flex:1;min-width:80px;height:4px;-webkit-appearance:none;appearance:none;background:var(--bg-ter);border-radius:4px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--text-pri);border:2.5px solid var(--bg-card);cursor:pointer;box-shadow:0 0 0 1px var(--border-md)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--text-pri);border:2.5px solid var(--bg-card);cursor:pointer}
+.check-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px;color:var(--text-sec)}
+.check-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--text-pri);cursor:pointer;flex-shrink:0}
+.disabled-row{opacity:0.38;pointer-events:none}
+hr{border:none;border-top:0.5px solid var(--border);margin:16px 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:9px;margin-bottom:14px}
+.card{background:var(--bg-sec);border-radius:var(--radius-md);padding:10px 12px}
+.card.ok{background:var(--bg-success)}.card.warn{background:var(--bg-warning)}.card.hi{background:var(--bg-info)}.card.rose{background:#FBEAF0}.card.purple{background:#EEEDFE}
+@media(prefers-color-scheme:dark){.card.rose{background:#4B1528}.card.purple{background:#26215C}}
+.clabel{font-size:11px;color:var(--text-sec);margin-bottom:2px}
+.card.ok .clabel,.card.ok .csub{color:var(--text-success)}
+.card.warn .clabel,.card.warn .csub{color:var(--text-warning)}
+.card.hi .clabel,.card.hi .csub{color:var(--text-info)}
+.card.rose .clabel,.card.rose .csub{color:#72243E}
+.card.purple .clabel,.card.purple .csub{color:#3C3489}
+@media(prefers-color-scheme:dark){.card.rose .clabel,.card.rose .csub{color:#ED93B1}.card.purple .clabel,.card.purple .csub{color:#CECBF6}}
+.cval{font-size:16px;font-weight:500;color:var(--text-pri)}
+.card.ok .cval{color:var(--text-success)}.card.warn .cval{color:var(--text-warning)}.card.hi .cval{color:var(--text-info)}
+.card.rose .cval{color:#4B1528}.card.purple .cval{color:#3C3489}
+@media(prefers-color-scheme:dark){.card.rose .cval{color:#ED93B1}.card.purple .cval{color:#CECBF6}}
+.csub{font-size:11px;color:var(--text-sec);margin-top:1px}
+.badge{display:inline-block;padding:3px 10px;border-radius:var(--radius-md);font-size:11px;font-weight:500}
+.badge.ok{background:var(--bg-success);color:var(--text-success)}
+.badge.warn{background:var(--bg-warning);color:var(--text-warning)}
+.note{font-size:12px;color:var(--text-sec);line-height:1.7;padding:11px 13px;background:var(--bg-sec);border-radius:var(--radius-md);margin-top:12px}
+.retbox{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.retcard{flex:1;min-width:108px;background:var(--bg-sec);border-radius:var(--radius-md);padding:9px 11px;border:0.5px solid var(--border)}
+.retcard .rl{font-size:11px;color:var(--text-sec);margin-bottom:2px}
+.retcard .rv{font-size:14px;font-weight:500;color:var(--text-pri)}
+.retcard .rs{font-size:11px;color:var(--text-sec);margin-top:1px}
+.retcard.real .rv{color:var(--text-success)}
+.perfil-box{background:var(--bg-info);border-radius:var(--radius-lg);padding:12px 15px;margin-top:12px;display:flex;flex-wrap:wrap;gap:16px}
+.perfil-box .pl{font-size:11px;color:var(--text-info);margin-bottom:1px}
+.perfil-box .pv{font-size:16px;font-weight:500;color:var(--text-info)}
+.perfil-box .ps{font-size:11px;color:var(--text-info)}
+.fonte-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.fonte-bar-bg{flex:1;height:7px;background:var(--bg-ter);border-radius:4px;overflow:hidden}
+.fonte-bar{height:100%;border-radius:4px}
+.fonte-label{font-size:12px;color:var(--text-sec);min-width:200px}
+.fonte-val{font-size:12px;font-weight:500;min-width:90px;text-align:right;color:var(--text-pri)}
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:12px;color:var(--text-sec)}
+.leg span{display:flex;align-items:center;gap:5px}
+.dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.toggle-wrap{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.toggle-btn{font-size:12px;padding:4px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);background:var(--bg-sec);color:var(--text-sec);cursor:pointer}
+.toggle-btn.active{background:var(--bg-info);color:var(--text-info)}
+.alerta{border-radius:var(--radius-md);padding:10px 13px;font-size:12px;margin-bottom:10px;line-height:1.6;font-weight:500}
+.alerta.ok{background:var(--bg-success);color:var(--text-success)}
+.alerta.warn{background:var(--bg-warning);color:var(--text-warning)}
+.alerta.danger{background:var(--bg-danger);color:var(--text-danger)}
+.tl-box{background:var(--bg-sec);border-radius:var(--radius-lg);padding:14px 16px;margin-top:8px}
+.tl-row{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:12px;gap:8px}
+.tl-row:last-child{border-bottom:none}
+.tl-fase{color:var(--text-pri);font-weight:500}
+.tl-per{font-size:11px;color:var(--text-sec);margin-top:2px}
+.tl-right{text-align:right;flex-shrink:0}
+.tl-liq{font-weight:500}
+.tl-liq.ok{color:var(--text-success)}.tl-liq.warn{color:var(--text-warning)}.tl-liq.danger{color:var(--text-danger)}
+.tl-troca{font-size:11px;color:var(--text-warning);margin-top:3px;font-weight:500;background:var(--bg-warning);padding:3px 7px;border-radius:4px;display:inline-block}
+.chart-note{font-size:11px;color:var(--text-sec);margin-top:3px;margin-bottom:10px;line-height:1.6}
+.iptu-calc{background:var(--bg-sec);border-radius:var(--radius-md);padding:10px 14px;margin-top:8px;font-size:12px}
+.iptu-row{display:flex;justify-content:space-between;padding:3px 0;color:var(--text-sec)}
+.iptu-row.total{font-weight:500;color:var(--text-pri);border-top:0.5px solid var(--border);margin-top:4px;padding-top:6px}
+.flag-box{background:var(--bg-info);border-radius:var(--radius-md);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text-info)}
+@media(max-width:600px){.slabel{min-width:100%}.sval{min-width:auto}.fonte-label{min-width:120px;font-size:11px}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Simulador de Aposentadoria</h1>
+<p class="sub">Planejamento patrimonial completo — renda, saúde, educação, IPTU e veículo</p>
+
+<!-- PERFIL -->
+<div class="section">
+  <p class="stitle">Perfil do investidor</p>
+  <div class="grp">Idades</div>
+  <div class="srow"><span class="slabel">Sua idade atual (anos)</span><input type="range" min="20" max="70" step="1" value="45" id="idade"><span class="sval" id="idade-o"></span></div>
+  <div class="srow"><span class="slabel">Idade do cônjuge</span><input type="range" min="20" max="70" step="1" value="41" id="idadeconj"><span class="sval" id="idadeconj-o"></span></div>
+  <div class="srow"><span class="slabel">Expectativa de vida do cônjuge</span><input type="range" min="70" max="100" step="1" value="85" id="expvida"><span class="sval" id="expvida-o"></span></div>
+  <div class="grp">Filhos</div>
+  <div class="check-row"><input type="checkbox" id="sem-filhos"><label for="sem-filhos">Não considerar filhos (sem custos escolares)</label></div>
+  <div id="filhos-wrap">
+    <div class="srow"><span class="slabel">Idade do filho 1 hoje (0 = sem filho 1)</span><input type="range" min="0" max="25" step="1" value="2" id="idfilha1"><span class="sval" id="idfilha1-o"></span></div>
+    <div class="srow"><span class="slabel">Filho 2: nascerá em (anos; 0 = já nasceu ou não tem)</span><input type="range" min="0" max="15" step="1" value="0" id="idfilha2nasc"><span class="sval" id="idfilha2nasc-o"></span></div>
+  </div>
+  <div class="perfil-box" id="perfil-box"></div>
+</div>
+
+<!-- RENDA -->
+<div class="section">
+  <p class="stitle">Renda mensal total na aposentadoria — R$ de hoje</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px">Valor total sacado da carteira. O gráfico mostra a sobra após deduzir todos os custos fixos (saúde, escola, IPTU, veículo).</p>
+  <div class="srow"><span class="slabel">Renda mensal inicial (1º ano)</span><input type="range" min="5000" max="100000" step="500" value="12000" id="rendaini"><span class="sval" id="rendaini-o"></span></div>
+  <div class="srow"><span class="slabel">Renda mensal no pico (maior necessidade)</span><input type="range" min="5000" max="150000" step="500" value="20000" id="rendapico"><span class="sval" id="rendapico-o"></span></div>
+  <div class="srow"><span class="slabel">Sua idade no pico da renda</span><input type="range" min="60" max="90" step="1" value="75" id="idadepico"><span class="sval" id="idadepico-o"></span></div>
+</div>
+
+<!-- ACUMULAÇÃO -->
+<div class="section">
+  <p class="stitle">Acumulação</p>
+  <div class="grp">Patrimônio e aportes</div>
+  <div class="srow"><span class="slabel">Patrimônio investido hoje (R$)</span><input type="range" min="0" max="10000000" step="100000" value="1000000" id="pat"><span class="sval" id="pat-o"></span></div>
+  <div class="srow"><span class="slabel">Aporte mensal bruto hoje (R$)</span><input type="range" min="0" max="50000" step="500" value="13000" id="aporte"><span class="sval" id="aporte-o"></span></div>
+  <div class="srow"><span class="slabel">Parar de aportar em (anos a partir de hoje)</span><input type="range" min="1" max="40" step="1" value="10" id="anosap"><span class="sval" id="anosap-o"></span></div>
+  <div class="srow"><span class="slabel">Aposentar em (anos a partir de hoje)</span><input type="range" min="1" max="40" step="1" value="10" id="anosret"><span class="sval" id="anosret-o"></span></div>
+  <div class="grp">Retorno e inflação</div>
+  <div class="srow"><span class="slabel">Retorno nominal bruto da carteira (% a.a.)</span><input type="range" min="7" max="14" step=".5" value="9" id="ret"><span class="sval" id="ret-o"></span></div>
+  <div class="srow"><span class="slabel">Inflação geral (% a.a.)</span><input type="range" min="3" max="8" step=".5" value="4.5" id="infl"><span class="sval" id="infl-o"></span></div>
+  <div class="grp">Herança dos pais</div>
+  <div class="srow"><span class="slabel">Valor estimado hoje (R$)</span><input type="range" min="0" max="10000000" step="100000" value="1000000" id="herval"><span class="sval" id="herval-o"></span></div>
+  <div class="srow"><span class="slabel">Anos até receber (a partir de hoje)</span><input type="range" min="1" max="40" step="1" value="15" id="anosher"><span class="sval" id="anosher-o"></span></div>
+  <div class="retbox" id="retbox"></div>
+</div>
+
+<!-- SAÚDE -->
+<div class="section">
+  <p class="stitle">Plano de saúde familiar</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px">Se iniciar antes da aposentadoria, deduz dos aportes. Após, deduz da renda. Inflação médica própria.</p>
+  <div class="srow"><span class="slabel">Início do plano (anos a partir de hoje)</span><input type="range" min="0" max="20" step="1" value="10" id="saude-inicio"><span class="sval" id="saude-inicio-o"></span></div>
+  <div class="srow"><span class="slabel">Mensalidade no início do plano (R$ hoje)</span><input type="range" min="200" max="5000" step="100" value="600" id="saude-ini"><span class="sval" id="saude-ini-o"></span></div>
+  <div class="srow"><span class="slabel">Mensalidade no pico — velhice (R$ hoje)</span><input type="range" min="500" max="20000" step="200" value="4200" id="saude-pico"><span class="sval" id="saude-pico-o"></span></div>
+  <div class="srow"><span class="slabel">Sua idade no pico do plano de saúde</span><input type="range" min="60" max="90" step="1" value="75" id="saude-idade-pico"><span class="sval" id="saude-idade-pico-o"></span></div>
+  <div class="srow"><span class="slabel">Inflação médica (% a.a.)</span><input type="range" min="4" max="15" step=".5" value="7" id="infl-med"><span class="sval" id="infl-med-o"></span></div>
+</div>
+
+<!-- ESCOLA -->
+<div class="section">
+  <p class="stitle">Custos escolares</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px">
+    Mesmas mensalidades aplicadas a cada filho de acordo com sua fase.
+    Deduzidas dos aportes enquanto você trabalha; da renda quando aposentado. Inflação escolar própria.
+  </p>
+  <div id="esc-semfilhos-aviso" class="flag-box" style="display:none">
+    ✓ Custos escolares desativados — "Não considerar filhos" está marcado na seção Perfil.
+  </div>
+  <div id="esc-conteudo">
+    <div class="srow"><span class="slabel">Inflação escolar (% a.a.)</span><input type="range" min="3" max="15" step=".5" value="6.5" id="infl-esc"><span class="sval" id="infl-esc-o"></span></div>
+    <div class="srow"><span class="slabel">Escola infantil (0–5 anos)</span><input type="range" min="0" max="5000" step="100" value="1500" id="cinfantil"><span class="sval" id="cinfantil-o"></span></div>
+    <div class="srow"><span class="slabel">Ensino fundamental (6–14 anos)</span><input type="range" min="0" max="8000" step="100" value="2500" id="cfund"><span class="sval" id="cfund-o"></span></div>
+    <div class="srow"><span class="slabel">Ensino médio (15–17 anos)</span><input type="range" min="0" max="10000" step="100" value="3500" id="cmedio"><span class="sval" id="cmedio-o"></span></div>
+    <div class="srow"><span class="slabel">Faculdade (18–22 anos)</span><input type="range" min="0" max="15000" step="100" value="4500" id="cfacul"><span class="sval" id="cfacul-o"></span></div>
+    <!-- Desconto irmão -->
+    <div class="grp">Desconto para 2º filho (irmão na mesma escola)</div>
+    <div class="check-row">
+      <input type="checkbox" id="desc-irmao-ativo" checked>
+      <label for="desc-irmao-ativo">Aplicar desconto de irmão ao 2º filho — apenas nas fases infantil, fundamental e médio (não vale para faculdade)</label>
+    </div>
+    <div class="srow" id="desc-irmao-row">
+      <span class="slabel">Desconto na mensalidade do 2º filho (%)</span>
+      <input type="range" min="5" max="50" step="5" value="30" id="desc-irmao-pct">
+      <span class="sval" id="desc-irmao-pct-o"></span>
+    </div>
+    <div id="desc-irmao-nota" style="font-size:11px;color:var(--text-sec);margin-bottom:8px;padding:6px 10px;background:var(--bg-sec);border-radius:var(--radius-md)"></div>
+  </div>
+</div>
+
+<!-- IPTU -->
+<div class="section">
+  <p class="stitle">IPTU — Belo Horizonte</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px">Cálculo automático pela tabela progressiva de BH (2026). O IPTU impacta os aportes ou a renda de acordo com o momento.</p>
+  <div class="srow"><span class="slabel">Valor venal do imóvel hoje (R$)</span><input type="range" min="100000" max="3000000" step="10000" value="700000" id="iptu-venal"><span class="sval" id="iptu-venal-o"></span></div>
+  <div class="srow"><span class="slabel">Valorização anual do imóvel (% a.a.)</span><input type="range" min="0" max="15" step=".5" value="5" id="iptu-valorizacao"><span class="sval" id="iptu-valorizacao-o"></span></div>
+  <div class="check-row"><input type="checkbox" id="iptu-avista" checked><label for="iptu-avista">Pagamento à vista em janeiro (7% de desconto)</label></div>
+  <div class="iptu-calc" id="iptu-calc"></div>
+</div>
+
+<!-- VEÍCULO -->
+<div class="section">
+  <p class="stitle">Veículo — troca programada</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px">
+    O carro atual se deprecia e é trocado periodicamente. O custo líquido da troca
+    (novo corrigido pelo IPCA − valor do usado depreciado) sai do patrimônio investido,
+    seja durante os aportes ou na aposentadoria. IPVA, seguro e taxas deduzem aportes ou renda.
+  </p>
+  <div class="grp">Carro atual</div>
+  <div class="srow"><span class="slabel">Valor do carro atual hoje (R$)</span><input type="range" min="20000" max="500000" step="5000" value="100000" id="carro-val"><span class="sval" id="carro-val-o"></span></div>
+  <div class="srow"><span class="slabel">Idade atual do carro (anos de uso)</span><input type="range" min="0" max="14" step="1" value="3" id="carro-idade"><span class="sval" id="carro-idade-o"></span></div>
+  <div class="srow"><span class="slabel">Depreciação anual do carro (% a.a.)</span><input type="range" min="5" max="25" step="1" value="10" id="carro-dep"><span class="sval" id="carro-dep-o"></span></div>
+  <div class="srow"><span class="slabel">Trocar o carro a cada (anos)</span><input type="range" min="2" max="15" step="1" value="7" id="carro-troca"><span class="sval" id="carro-troca-o"></span></div>
+  <div class="grp">Próximo carro (valor se comprado hoje)</div>
+  <div class="srow"><span class="slabel">Valor do novo veículo hoje (R$)</span><input type="range" min="30000" max="700000" step="5000" value="200000" id="carro-novo"><span class="sval" id="carro-novo-o"></span></div>
+  <div class="grp">Custos anuais (IPVA + taxas + seguro)</div>
+  <div class="srow"><span class="slabel">Alíquota IPVA MG (% sobre valor do carro)</span><input type="range" min="1" max="4" step=".1" value="4" id="ipva-aliq"><span class="sval" id="ipva-aliq-o"></span></div>
+  <div class="check-row"><input type="checkbox" id="ipva-avista" checked><label for="ipva-avista">IPVA à vista (desconto ~5% em MG)</label></div>
+  <div class="srow"><span class="slabel">Seguro contra acidentes/roubo (R$ hoje, pago em novembro)</span><input type="range" min="500" max="20000" step="200" value="3900" id="seguro-val"><span class="sval" id="seguro-val-o"></span></div>
+  <div class="cards" id="cards-carro" style="margin-top:10px"></div>
+</div>
+
+<!-- IMPACTO APORTES -->
+<div class="section">
+  <p class="stitle">Impacto nos aportes mensais — fase a fase</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:8px">
+    Quanto do aporte bruto (corrigido pelo IPCA anualmente) efetivamente vai para a carteira após todas as deduções.
+    Trocas de carro que ocorrem durante esta fase saem diretamente do patrimônio investido (indicadas em laranja).
+  </p>
+  <div id="aporte-timeline"></div>
+  <div style="position:relative;height:200px;margin-top:12px">
+    <canvas id="g0" role="img" aria-label="Aporte líquido mensal ao longo do tempo">Aporte líquido.</canvas>
+  </div>
+</div>
+
+<!-- FONTES E META -->
+<div class="section">
+  <p class="stitle">Fontes de capital na aposentadoria</p>
+  <div id="fontes-wrap" style="margin-bottom:14px"></div>
+  <p class="stitle">Resultado vs meta</p>
+  <div class="cards" id="cards-meta" style="margin-bottom:10px"></div>
+  <div style="margin-bottom:4px">
+    <span class="badge" id="badge-status"></span>
+    <span style="font-size:13px;color:var(--text-sec);margin-left:8px" id="gap-text"></span>
+  </div>
+</div>
+
+<!-- PATRIMÔNIO -->
+<div class="section">
+  <p class="stitle">Projeção do patrimônio durante a aposentadoria</p>
+  <div class="leg">
+    <span><span class="dot" style="background:#378ADD"></span>Com herança dos pais</span>
+    <span><span class="dot" style="background:#1D9E75"></span>Sem herança dos pais</span>
+    <span><span style="width:14px;height:3px;background:#D85A30;display:inline-block;border-radius:0"></span>Meta herança</span>
+  </div>
+  <div style="position:relative;height:240px">
+    <canvas id="g1" role="img" aria-label="Patrimônio ao longo da aposentadoria">Projeção patrimonial.</canvas>
+  </div>
+</div>
+
+<!-- RENDA DECOMPOSTA -->
+<div class="section">
+  <p class="stitle">Como sua renda mensal se divide na aposentadoria</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:8px">Azul = sobra para vida normal. Cada fatia colorida = custo fixo deduzido. Vermelho = déficit real.</p>
+  <div id="alerta-renda" style="margin-bottom:8px"></div>
+  <div class="toggle-wrap">
+    <button class="toggle-btn active" id="btn-hoje" onclick="setModo('hoje')">R$ de hoje</button>
+    <button class="toggle-btn" id="btn-sem" onclick="setModo('sem')">Nominal — sem herança</button>
+    <button class="toggle-btn" id="btn-com" onclick="setModo('com')">Nominal — com herança</button>
+  </div>
+  <p class="chart-note" id="chart-note2"></p>
+  <div class="leg">
+    <span><span class="dot" style="background:rgba(55,138,221,0.85)"></span>Sobra (vida normal)</span>
+    <span><span class="dot" style="background:rgba(237,147,177,0.9)"></span>Saúde</span>
+    <span><span class="dot" style="background:rgba(186,117,23,0.85)"></span>Escola</span>
+    <span><span class="dot" style="background:rgba(100,78,176,0.8)"></span>IPTU</span>
+    <span><span class="dot" style="background:rgba(29,158,117,0.75)"></span>Veículo (IPVA+seguro)</span>
+    <span><span class="dot" style="background:rgba(226,75,74,0.75)"></span>Déficit real</span>
+  </div>
+  <div style="position:relative;height:280px">
+    <canvas id="g2" role="img" aria-label="Decomposição da renda mensal">Decomposição da renda.</canvas>
+  </div>
+</div>
+
+<!-- DIAGNÓSTICO -->
+<div class="section">
+  <p class="stitle">Diagnóstico final</p>
+  <div class="cards" id="diag-cards"></div>
+  <div class="note" id="nota"></div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const fmtM=v=>{const s=v<0?'-':'';const av=Math.abs(v);if(av>=1e6)return s+'R$ '+(av/1e6).toFixed(2).replace('.',',')+'M';return s+'R$ '+Math.round(av).toLocaleString('pt-BR')};
+const fmt=v=>'R$ '+Math.round(Math.abs(v)).toLocaleString('pt-BR');
+const ANO=2026;
+let ch0=null,ch1=null,ch2=null,modo='hoje',D={};
+
+// ── IPTU BH ──
+const IPTU_FAIXAS=[
+  {ate:170008,aliq:0.006},{ate:425027,aliq:0.007},{ate:743801,aliq:0.0075},
+  {ate:1275094,aliq:0.008},{ate:1700128,aliq:0.0085},{ate:2125161,aliq:0.009},
+  {ate:Infinity,aliq:0.01}
+];
+function calcIPTU(venal){
+  let imp=0,ant=0;
+  for(const f of IPTU_FAIXAS){
+    if(venal<=ant)break;
+    imp+=(Math.min(venal,f.ate)-ant)*f.aliq;
+    ant=f.ate;if(venal<=f.ate)break;
+  }
+  return imp;
+}
+
+// ── ESCOLA ──
+const FASES=[
+  {nome:'Infantil', min:0,  max:5,  id:'cinfantil'},
+  {nome:'Fundamental',min:6,max:14,id:'cfund'},
+  {nome:'Médio',    min:15, max:17, id:'cmedio'},
+  {nome:'Faculdade',min:18, max:22, id:'cfacul'}
+];
+function escPorIdade(i,c){for(const f of FASES)if(i>=f.min&&i<=f.max)return c[f.id]||0;return 0;}
+
+// Desconto de irmão aplicado ao 2º filho:
+//   • apenas quando o 1º filho também está pagando escola no mesmo ano
+//   • NÃO se aplica quando o 2º filho está na faculdade (18–22 anos)
+//   • na faculdade o 2º filho paga valor integral, independentemente do 1º
+function escMensalNom(anoRel,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct){
+  if(semFilhos)return 0;
+  let tot=0;
+  let f1Paga=false;
+  if(idF1>0){
+    const cv=escPorIdade(idF1+anoRel,c);
+    if(cv>0){tot+=cv*Math.pow(1+inflEsc,anoRel);f1Paga=true;}
+  }
+  if(nascF2>0){
+    const id2=anoRel-nascF2;
+    if(id2>=0){
+      const cv=escPorIdade(id2,c);
+      if(cv>0){
+        // Desconto só nas fases pré-faculdade (0–17 anos) e quando o 1º também paga
+        const estaNaFaculdade=id2>=18&&id2<=22;
+        const mult=(descAtivo&&f1Paga&&!estaNaFaculdade)?(1-descPct):1;
+        tot+=cv*Math.pow(1+inflEsc,anoRel)*mult;
+      }
+    }
+  }
+  return tot;
+}
+
+// ── SAÚDE ──
+function sauHoje(anoRel,sIA,sIni,sPico,sIPico,idApo,anosRet){
+  if(anoRel<sIA)return 0;
+  const idAt=idApo-anosRet+anoRel,idIni=idApo-anosRet+sIA;
+  if(idAt>=sIPico)return sPico;
+  return sIni+(sPico-sIni)*Math.max(0,Math.min(1,(idAt-idIni)/Math.max(1,sIPico-idIni)));
+}
+function sauMensalNom(anoRel,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed){
+  return sauHoje(anoRel,sIA,sIni,sPico,sIPico,idApo,anosRet)*Math.pow(1+inflMed,anoRel);
+}
+
+// ── RENDA RAMPA ──
+function rendHoje(a,idApo,ri,rp,ip){
+  const ia=idApo+a;if(ia>=ip)return rp;
+  return ri+(rp-ri)*((ia-idApo)/Math.max(1,ip-idApo));
+}
+
+// ═══════════════════════════════════════════════
+// ── VEÍCULO (anoAbs = anos a partir de hoje) ──
+// ═══════════════════════════════════════════════
+function carroValorNoAno(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,infl){
+  if(anoAbs<primeiraT)return carroVal*Math.pow(1-dep,anoAbs);
+  const ciclo=Math.floor((anoAbs-primeiraT)/troca);
+  const anoCompra=primeiraT+ciclo*troca;
+  return novoHoje*Math.pow(1+infl,anoCompra)*Math.pow(1-dep,anoAbs-anoCompra);
+}
+function veicRecorrenteAno(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl){
+  const valCarro=carroValorNoAno(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,infl);
+  const ipva=(valCarro*ipvaAliq)*(ipvaAvista?0.95:1);
+  const seguro=seguroHoje*Math.pow(1+infl,anoAbs);
+  return{total:ipva+100+seguro,ipva,seguro,valCarro:Math.round(valCarro)};
+}
+function custoTroca(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,infl){
+  if(anoAbs<=0)return 0;
+  const eTroca=(anoAbs===primeiraT)||(anoAbs>primeiraT&&(anoAbs-primeiraT)%troca===0);
+  if(!eTroca)return 0;
+  const novoNom=novoHoje*Math.pow(1+infl,anoAbs);
+  const valorUsado=anoAbs===primeiraT
+    ?carroVal*Math.pow(1-dep,primeiraT)
+    :novoHoje*Math.pow(1+infl,anoAbs-troca)*Math.pow(1-dep,troca);
+  return Math.max(0,novoNom-valorUsado);
+}
+
+// ── IPTU mensal nominal ──
+function iptuMensalNom(anoAbs,venalHoje,valorizacao,iptuAvista){
+  return(calcIPTU(venalHoje*Math.pow(1+valorizacao,anoAbs))*(iptuAvista?0.93:1))/12;
+}
+
+// ═══════════════════════════════════════════════
+// ── ACUMULAÇÃO ──
+// ═══════════════════════════════════════════════
+function calcAcumulacao(anosRet,anosApEf,ret,infl,inflMed,inflEsc,
+                        sIA,sIni,sPico,sIPico,idApo,sauAntesRet,
+                        idF1,nascF2,c,semFilhos,descAtivo,descPct,
+                        venalHoje,valorizacao,iptuAvista,
+                        carroVal,dep,troca,primeiraT,novoHoje,
+                        ipvaAliq,ipvaAvista,seguroHoje,
+                        apBHoje,pat){
+  const rm=ret/12;
+  const labA=[],vLq=[],vEsc=[],vSau=[],vIptu=[],vVeic=[],vBruto=[];
+  for(let a=0;a<anosRet;a++){
+    const aportando=a<anosApEf;
+    const apBNom=aportando?apBHoje*Math.pow(1+infl,a):0;
+    const escN=escMensalNom(a,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
+    const sauN=sauAntesRet?sauMensalNom(a,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed):0;
+    const iptuN=iptuMensalNom(a,venalHoje,valorizacao,iptuAvista);
+    const{total:veicA}=veicRecorrenteAno(a,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl);
+    const veicN=veicA/12;
+    labA.push(''+(ANO+a));
+    vEsc.push(Math.round(escN));vSau.push(Math.round(sauN));
+    vIptu.push(Math.round(iptuN));vVeic.push(Math.round(veicN));
+    vLq.push(Math.round(aportando?Math.max(0,apBNom-escN-sauN-iptuN-veicN):0));
+    vBruto.push(Math.round(apBNom));
+  }
+  let P=pat;
+  for(let m=0;m<anosRet*12;m++){
+    const a=Math.floor(m/12);
+    const aportando=a<anosApEf;
+    const apBNom=aportando?apBHoje*Math.pow(1+infl,a):0;
+    const escN=escMensalNom(a,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
+    const sauN=sauAntesRet?sauMensalNom(a,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed):0;
+    const iptuN=iptuMensalNom(a,venalHoje,valorizacao,iptuAvista);
+    const{total:veicA}=veicRecorrenteAno(a,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl);
+    const veicN=veicA/12;
+    const trocaM=(m%12===0)?custoTroca(a,carroVal,dep,troca,primeiraT,novoHoje,infl):0;
+    const aL=aportando?Math.max(0,apBNom-escN-sauN-iptuN-veicN):0;
+    P=P*(1+rm)+aL-trocaM;
+    if(P<0)P=0;
+  }
+  return{pat:P,labA,vLq,vEsc,vSau,vIptu,vVeic,vBruto};
+}
+
+// ═══════════════════════════════════════════════
+// ── SIMULAÇÃO PATRIMÔNIO (aposentadoria) ──
+// ═══════════════════════════════════════════════
+function simPat(P0,anosRet,n,ret,infl,inflMed,inflEsc,ri,rp,ip,idApo,
+                sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
+                venalHoje,valorizacao,iptuAvista,
+                carroVal,dep,troca,primeiraT,novoHoje,
+                ipvaAliq,ipvaAvista,seguroHoje,
+                herC,herAntes,anoHerApo){
+  const pat=[],disp=[],sNarr=[],eNarr=[],iptuNarr=[],veicNarr=[];
+  let P=P0;
+  for(let a=0;a<=n;a++){
+    if(!herAntes&&a===anoHerApo&&herC>0)P+=herC;
+    const anoAbs=anosRet+a;
+    P=Math.max(0,P-custoTroca(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,infl));
+    const rH=rendHoje(a,idApo,ri,rp,ip);
+    const sacNomAno=rH*12*Math.pow(1+infl,anoAbs);
+    const sNom=sauMensalNom(anoAbs,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed);
+    const eNom=escMensalNom(anoAbs,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
+    const ipNom=iptuMensalNom(anoAbs,venalHoje,valorizacao,iptuAvista);
+    const{total:veicA}=veicRecorrenteAno(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl);
+    const vcNom=veicA/12;
+    pat.push(Math.max(0,Math.round(P)));
+    if(P<=0){
+      disp.push(0);sNarr.push(Math.round(sNom));eNarr.push(Math.round(eNom));
+      iptuNarr.push(Math.round(ipNom));veicNarr.push(Math.round(vcNom));
+    }else{
+      disp.push(Math.max(0,Math.round(sacNomAno/12-sNom-eNom-ipNom-vcNom)));
+      sNarr.push(Math.round(sNom));eNarr.push(Math.round(eNom));
+      iptuNarr.push(Math.round(ipNom));veicNarr.push(Math.round(vcNom));
+    }
+    P=P*(1+ret)-sacNomAno;
+    if(P<0)P=0;
+  }
+  return{pat,disp,sN:sNarr,eN:eNarr,iptuN:iptuNarr,veicN:veicNarr};
+}
+
+function renderG2(){
+  const m=modo;
+  let vs,vsa,ve,vip,vvc,vd,yL,nt;
+  if(m==='hoje'){vs=D.soH;vsa=D.saH;ve=D.esH;vip=D.ipH;vvc=D.vcH;vd=D.deH;yL='R$ de hoje / mês';nt='Poder de compra constante. Quedas abruptas nas linhas tracejadas = trocas de carro saindo do patrimônio.';}
+  else if(m==='sem'){vs=D.soNs;vsa=D.saNs;ve=D.esNs;vip=D.ipNs;vvc=D.vcNs;vd=D.deNs;yL='R$ nominais / mês (sem herança)';nt='Valores nominais SEM herança. Barras vermelhas = patrimônio esgotado.';}
+  else{vs=D.soNc;vsa=D.saNc;ve=D.esNc;vip=D.ipNc;vvc=D.vcNc;vd=D.deNc;yL='R$ nominais / mês (com herança)';nt='Valores nominais COM herança. Compare com "sem herança" para ver o impacto da herança.';}
+  document.getElementById('chart-note2').textContent=nt;
+  if(ch2)ch2.destroy();
+  ch2=new Chart(document.getElementById('g2').getContext('2d'),{
+    data:{labels:D.labR,datasets:[
+      {type:'bar',label:'Sobra para vida normal',data:vs,backgroundColor:'rgba(55,138,221,0.80)',stack:'r',yAxisID:'y'},
+      {type:'bar',label:'Saúde',data:vsa,backgroundColor:'rgba(237,147,177,0.85)',stack:'r',yAxisID:'y'},
+      {type:'bar',label:'Escola',data:ve,backgroundColor:'rgba(186,117,23,0.80)',stack:'r',yAxisID:'y'},
+      {type:'bar',label:'IPTU',data:vip,backgroundColor:'rgba(100,78,176,0.75)',stack:'r',yAxisID:'y'},
+      {type:'bar',label:'IPVA+seguro',data:vvc,backgroundColor:'rgba(29,158,117,0.68)',stack:'r',yAxisID:'y'},
+      {type:'bar',label:'Déficit real',data:vd,backgroundColor:'rgba(226,75,74,0.72)',stack:'r',yAxisID:'y'},
+      {type:'line',label:'Patrimônio c/ herança',data:D.patCom,borderColor:'#378ADD',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false,yAxisID:'yp',tension:.3},
+      {type:'line',label:'Patrimônio s/ herança',data:D.patSem,borderColor:'#1D9E75',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false,yAxisID:'yp',tension:.3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
+        label:c=>{if(c.parsed.y===0&&c.dataset.type==='bar')return null;if(c.dataset.type==='line')return c.dataset.label+': '+fmtM(c.parsed.y);return c.dataset.label+': '+fmt(c.parsed.y)+'/mês';},
+        footer:it=>{const t=it.filter(i=>i.dataset.type==='bar'&&i.dataset.label!=='Déficit real').reduce((s,i)=>s+Math.max(0,i.parsed.y),0);const df=it.find(i=>i.dataset.label==='Déficit real');if(df&&df.parsed.y>0)return 'Déficit: patrimônio esgotado neste ano';return t>0?'Total sacado: '+fmt(t)+'/mês':'';}
+      }}},
+      scales:{
+        x:{stacked:true,ticks:{maxTicksLimit:14,font:{size:10}},title:{display:true,text:'sua idade',font:{size:10},color:'#888780'}},
+        y:{stacked:true,position:'left',ticks:{callback:v=>v>=1000?'R$'+(v/1000).toFixed(0)+'k':'R$0',font:{size:10}},title:{display:true,text:yL,font:{size:10},color:'#888780'},grid:{color:'rgba(128,128,128,0.1)'}},
+        yp:{position:'right',ticks:{callback:v=>v>=1e6?'R$'+(v/1e6).toFixed(1)+'M':v>=1e3?'R$'+(v/1000).toFixed(0)+'k':'R$0',font:{size:10}},title:{display:true,text:'Patrimônio',font:{size:10},color:'#888780'},grid:{display:false}}
+      }
+    }
+  });
+}
+
+function setModo(m){
+  modo=m;
+  ['hoje','sem','com'].forEach(x=>document.getElementById('btn-'+x).className='toggle-btn'+(m===x?' active':''));
+  if(D.labR)renderG2();
+}
+
+function atualizaUIFilhos(){
+  const semFilhos=document.getElementById('sem-filhos').checked;
+  const nascF2=+document.getElementById('idfilha2nasc').value;
+  const descAtivo=document.getElementById('desc-irmao-ativo').checked;
+  const pct=+document.getElementById('desc-irmao-pct').value;
+  const idF1=+document.getElementById('idfilha1').value;
+
+  document.getElementById('filhos-wrap').classList.toggle('disabled-row',semFilhos);
+  document.getElementById('esc-semfilhos-aviso').style.display=semFilhos?'block':'none';
+  document.getElementById('esc-conteudo').classList.toggle('disabled-row',semFilhos);
+
+  const temF2=nascF2>0&&!semFilhos;
+  document.getElementById('desc-irmao-ativo').closest('.check-row').classList.toggle('disabled-row',!temF2);
+  document.getElementById('desc-irmao-row').classList.toggle('disabled-row',!temF2||!descAtivo||semFilhos);
+
+  let nota='';
+  if(!semFilhos&&temF2){
+    if(descAtivo){
+      // ── ÚNICA LINHA ALTERADA: menciona a exceção da faculdade ──
+      nota='✓ Desconto de '+pct+'% aplicado às mensalidades do 2º filho (infantil, fundamental e médio) apenas quando o 1º filho também está pagando escola no mesmo período. Na faculdade (18–22 anos) o 2º filho paga o valor integral, independentemente do 1º. O 1º filho paga sempre o valor integral.';
+    }else{
+      nota='Desconto de irmão desativado — 2º filho paga o valor integral em todas as fases.';
+    }
+  }else if(!semFilhos&&idF1>0&&nascF2===0){
+    nota='Sem 2º filho configurado — desconto de irmão não se aplica.';
+  }
+  document.getElementById('desc-irmao-nota').textContent=nota;
+}
+
+function calc(){
+  const g=id=>+document.getElementById(id).value;
+  const gc=id=>document.getElementById(id).checked;
+
+  const idade=g('idade'),idConj=g('idadeconj'),expV=g('expvida');
+  const semFilhos=gc('sem-filhos');
+  const idF1=g('idfilha1'),nascF2=g('idfilha2nasc');
+  const pat=g('pat'),apBHoje=g('aporte'),anosApRaw=g('anosap'),anosRet=g('anosret');
+  const ret=g('ret')/100,infl=g('infl')/100;
+  const herVal=g('herval'),anosHer=g('anosher');
+  const ri=g('rendaini'),rp=g('rendapico'),ip=g('idadepico');
+  const sIA=g('saude-inicio'),sIni=g('saude-ini'),sPico=g('saude-pico'),sIPico=g('saude-idade-pico'),inflMed=g('infl-med')/100;
+  const inflEsc=g('infl-esc')/100;
+  const descAtivo=gc('desc-irmao-ativo')&&nascF2>0&&!semFilhos;
+  const descPct=g('desc-irmao-pct')/100;
+  const c={cinfantil:g('cinfantil'),cfund:g('cfund'),cmedio:g('cmedio'),cfacul:g('cfacul')};
+  const venalHoje=g('iptu-venal'),valorizacao=g('iptu-valorizacao')/100,iptuAvista=gc('iptu-avista');
+  const carroVal=g('carro-val'),idadeCarro=g('carro-idade'),dep=g('carro-dep')/100;
+  const troca=g('carro-troca'),novoHoje=g('carro-novo');
+  const ipvaAliq=g('ipva-aliq')/100,ipvaAvista=gc('ipva-avista'),seguroHoje=g('seguro-val');
+
+  const idadeCarroEf=Math.min(idadeCarro,troca-1);
+  const primeiraT=troca-idadeCarroEf;
+  const retReal=(ret-infl)/(1+infl);
+  const anosApEf=Math.min(anosApRaw,anosRet);
+  const anoApo=ANO+anosRet,idApo=idade+anosRet,idConjApo=idConj+anosRet;
+  const n=Math.max(5,Math.round(expV-idConjApo));
+  const sauAntesRet=sIA<anosRet;
+  const duranteAcum=primeiraT<anosRet;
+
+  atualizaUIFilhos();
+
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  s('idade-o',idade+' anos (nasc. '+(ANO-idade)+')');
+  s('idadeconj-o',idConj+' anos');s('expvida-o',expV+' anos');
+  s('idfilha1-o',semFilhos?'—':idF1>0?idF1+' anos':'sem filho 1');
+  s('idfilha2nasc-o',semFilhos?'—':nascF2===0?'sem filho 2':'nasce em '+(ANO+nascF2)+' (daqui a '+nascF2+' anos)');
+  s('pat-o',fmt(pat));s('aporte-o',fmt(apBHoje)+'/mês hoje (+ IPCA a.a.)');
+  s('anosap-o',anosApEf+' anos → '+(ANO+anosApEf));
+  s('anosret-o',anosRet+' anos → aposentadoria em '+anoApo);
+  s('ret-o',(ret*100).toFixed(1).replace('.',',')+'% nominal');
+  s('infl-o',(infl*100).toFixed(1).replace('.',',')+' % a.a.');
+  s('herval-o',herVal>0?fmt(herVal):'R$ 0');
+  s('anosher-o',anosHer+' anos → '+(ANO+anosHer)+' (você terá '+(idade+anosHer)+' anos)');
+  s('rendaini-o',fmt(ri)+'/mês hoje');s('rendapico-o',fmt(rp)+'/mês hoje');s('idadepico-o','aos '+ip+' anos');
+  s('saude-inicio-o',(sIA===0?'imediato':sIA+' anos → '+(ANO+sIA))+(sauAntesRet?' ⚠ deduz aportes':' — apenas na aposentadoria'));
+  s('saude-ini-o',fmt(sIni)+'/mês hoje');s('saude-pico-o',fmt(sPico)+'/mês hoje');s('saude-idade-pico-o','aos '+sIPico+' anos');
+  s('infl-med-o',(inflMed*100).toFixed(1).replace('.',',')+'% a.a. médica');
+  s('infl-esc-o',(inflEsc*100).toFixed(1).replace('.',',')+'% a.a. escolar');
+  s('cinfantil-o',fmt(c.cinfantil)+'/mês');s('cfund-o',fmt(c.cfund)+'/mês');
+  s('cmedio-o',fmt(c.cmedio)+'/mês');s('cfacul-o',fmt(c.cfacul)+'/mês');
+  s('desc-irmao-pct-o',g('desc-irmao-pct')+'% de desconto');
+  s('iptu-venal-o',fmt(venalHoje));s('iptu-valorizacao-o',(valorizacao*100).toFixed(1).replace('.',',')+'% a.a.');
+  s('carro-val-o',fmt(carroVal));
+  s('carro-idade-o',idadeCarro+' anos de uso → próxima troca daqui '+primeiraT+' ano'+(primeiraT!==1?'s':'')+' ('+(ANO+primeiraT)+')'+(primeiraT<anosRet?' ⚠ antes da aposentadoria':''));
+  s('carro-dep-o',(dep*100).toFixed(0)+'% a.a.');
+  s('carro-troca-o','a cada '+troca+' anos — 1ª troca em '+(ANO+primeiraT));
+  s('carro-novo-o',fmt(novoHoje)+' hoje → corrigido pelo IPCA até cada troca');
+  s('ipva-aliq-o',(ipvaAliq*100).toFixed(1).replace('.',',')+'% sobre valor do veículo');
+  s('seguro-val-o',fmt(seguroHoje)+'/ano (novembro, corrigido pelo IPCA)');
+
+  // ── IPTU atual ──
+  const iptuBruto=calcIPTU(venalHoje);
+  const iptuFinal=iptuAvista?iptuBruto*0.93:iptuBruto;
+  let iptuHTML='<div class="iptu-calc">';
+  let ant2=0;
+  IPTU_FAIXAS.forEach((f,i)=>{
+    if(venalHoje<=ant2)return;
+    const base=Math.min(venalHoje,f.ate)-ant2;
+    iptuHTML+='<div class="iptu-row"><span>Faixa '+(i+1)+': '+(f.aliq*100).toFixed(2)+'% × '+fmt(base)+'</span><span>'+fmt(base*f.aliq)+'</span></div>';
+    ant2=f.ate;if(venalHoje<=f.ate)return;
+  });
+  iptuHTML+='<div class="iptu-row total"><span>IPTU bruto</span><span>'+fmt(iptuBruto)+'</span></div>';
+  if(iptuAvista)iptuHTML+='<div class="iptu-row total" style="color:var(--text-success)"><span>IPTU à vista (−7%)</span><span>'+fmt(iptuFinal)+'</span></div>';
+  iptuHTML+='<div class="iptu-row" style="font-size:11px;color:var(--text-sec);margin-top:4px"><span>Equivalente mensal</span><span>'+fmt(iptuFinal/12)+'/mês</span></div></div>';
+  document.getElementById('iptu-calc').innerHTML=iptuHTML;
+
+  // ── Veículo: cards ──
+  const{total:veicAtual,ipva:ipvaAtual,seguro:segAtual,valCarro:valCarroHoje}=
+    veicRecorrenteAno(0,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl);
+  const novoT1=novoHoje*Math.pow(1+infl,primeiraT);
+  const usadoT1=carroVal*Math.pow(1-dep,primeiraT);
+  const custoT1=Math.max(0,novoT1-usadoT1);
+  let trocasHTML='';
+  for(let t=primeiraT;t<=60;t+=troca){
+    const ct=custoTroca(t,carroVal,dep,troca,primeiraT,novoHoje,infl);
+    const novoN=novoHoje*Math.pow(1+infl,t);
+    const usadoN=t===primeiraT?carroVal*Math.pow(1-dep,primeiraT):novoHoje*Math.pow(1+infl,t-troca)*Math.pow(1-dep,troca);
+    const fase=t<anosRet?'⚠ durante aportes':(t===anosRet?'na aposentadoria':'aposentadoria');
+    trocasHTML+='<div class="iptu-row'+(t<anosRet?' total':'')+'" style="'+(t<anosRet?'color:var(--text-warning)':'')+'">'+
+      '<span>'+ANO+t+' (daqui '+t+' anos) — '+fase+'</span>'+
+      '<span style="text-align:right">líquido: '+fmt(ct)+'<br><small>novo '+fmt(novoN)+' − usado '+fmt(usadoN)+'</small></span></div>';
+    if(t>Math.max(anosRet+30,40))break;
+  }
+  document.getElementById('cards-carro').innerHTML=
+    '<div class="card"><div class="clabel">Valor atual do carro</div><div class="cval">'+fmt(valCarroHoje)+'</div><div class="csub">'+idadeCarro+' anos de uso · base IPVA</div></div>'+
+    '<div class="card"><div class="clabel">IPVA este ano</div><div class="cval">'+fmt(ipvaAtual)+'</div><div class="csub">'+(ipvaAliq*100).toFixed(1)+'% sobre '+fmt(valCarroHoje)+(ipvaAvista?' (à vista −5%)':' (3x)')+'</div></div>'+
+    '<div class="card"><div class="clabel">Seguro roubo/acid. (nov.)</div><div class="cval">'+fmt(segAtual)+'</div><div class="csub">pago à vista em novembro</div></div>'+
+    '<div class="card"><div class="clabel">Total recorrente anual</div><div class="cval">'+fmt(veicAtual)+'</div><div class="csub">'+fmt(veicAtual/12)+'/mês equiv.</div></div>'+
+    '<div class="card '+(duranteAcum?'warn':'purple')+'"><div class="clabel">1ª troca: '+ANO+primeiraT+' (daqui '+primeiraT+' ano'+(primeiraT!==1?'s':'')+')'+(duranteAcum?' — ⚠ durante aportes':' — aposentadoria')+'</div>'+
+    '<div class="cval">'+fmt(custoT1)+' líquido</div>'+
+    '<div class="csub">novo: '+fmt(novoT1)+' · usado: '+fmt(usadoT1)+'</div></div>'+
+    '<div style="grid-column:1/-1"><div class="iptu-calc" style="margin-top:0"><div style="font-size:11px;font-weight:500;color:var(--text-sec);margin-bottom:4px">Calendário completo de trocas</div>'+trocasHTML+'</div></div>';
+
+  document.getElementById('retbox').innerHTML=
+    '<div class="retcard"><div class="rl">Retorno nominal</div><div class="rv">'+(ret*100).toFixed(1).replace('.',',')+'% a.a.</div><div class="rs">bruto</div></div>'+
+    '<div class="retcard"><div class="rl">Inflação geral</div><div class="rv">'+(infl*100).toFixed(1).replace('.',',')+'% a.a.</div><div class="rs">IPCA — corrige aporte e carro</div></div>'+
+    '<div class="retcard"><div class="rl">Inflação médica</div><div class="rv" style="color:#993556">'+(inflMed*100).toFixed(1).replace('.',',')+'% a.a.</div><div class="rs">saúde</div></div>'+
+    '<div class="retcard"><div class="rl">Inflação escolar</div><div class="rv" style="color:#854F0B">'+(inflEsc*100).toFixed(1).replace('.',',')+'% a.a.</div><div class="rs">escola</div></div>'+
+    '<div class="retcard real"><div class="rl">Retorno real</div><div class="rv">'+(retReal*100).toFixed(2).replace('.',',')+' % a.a.</div><div class="rs">Fisher</div></div>';
+
+  let pbHTML=
+    '<div><div class="pl">Aposentadoria em</div><div class="pv">'+anoApo+'</div><div class="ps">você terá '+idApo+' anos</div></div>'+
+    '<div><div class="pl">Cônjuge na aposentadoria</div><div class="pv">'+idConjApo+' anos</div></div>'+
+    '<div><div class="pl">Horizonte de consumo</div><div class="pv">'+n+' anos</div><div class="ps">até '+expV+' anos do cônjuge</div></div>';
+  if(semFilhos){
+    pbHTML+='<div><div class="pl">Filhos</div><div class="pv">Não considerados</div><div class="ps">sem custos escolares</div></div>';
+  }else{
+    if(idF1>0)pbHTML+='<div><div class="pl">Filho 1 na aposentadoria</div><div class="pv">'+(idF1+anosRet)+' anos</div></div>';
+    if(nascF2>0)pbHTML+='<div><div class="pl">Filho 2 nasce em</div><div class="pv">'+(ANO+nascF2)+'</div><div class="ps">terá '+(anosRet-nascF2)+' anos na aposentadoria</div></div>';
+    if(descAtivo&&nascF2>0)pbHTML+='<div><div class="pl">Desconto irmão (2º filho)</div><div class="pv">'+g('desc-irmao-pct')+'%</div><div class="ps">infantil/fundamental/médio</div></div>';
+  }
+  pbHTML+=
+    '<div><div class="pl">Saúde inicia em</div><div class="pv">'+(ANO+sIA)+'</div><div class="ps">'+(sauAntesRet?'antes da aposentadoria':'na aposentadoria')+'</div></div>'+
+    '<div><div class="pl">1ª troca do carro</div><div class="pv">'+(ANO+primeiraT)+'</div><div class="ps">'+(duranteAcum?'⚠ sai do patrimônio durante aportes':'na aposentadoria')+'</div></div>';
+  document.getElementById('perfil-box').innerHTML=pbHTML;
+
+  // ── ACUMULAÇÃO ──
+  const acum=calcAcumulacao(anosRet,anosApEf,ret,infl,inflMed,inflEsc,
+    sIA,sIni,sPico,sIPico,idApo,sauAntesRet,
+    idF1,nascF2,c,semFilhos,descAtivo,descPct,
+    venalHoje,valorizacao,iptuAvista,
+    carroVal,dep,troca,primeiraT,novoHoje,
+    ipvaAliq,ipvaAvista,seguroHoje,apBHoje,pat);
+  const totApo=acum.pat;
+
+  // ── Timeline ──
+  const evs=new Set([0,anosApEf,anosRet]);
+  if(sauAntesRet)evs.add(sIA);
+  if(!semFilhos){
+    FASES.forEach(f=>{
+      if(idF1>0){const r0=Math.max(0,f.min-idF1),r1=Math.min(anosRet,f.max-idF1+1);if(r0<=anosRet){evs.add(r0);if(r1<=anosRet)evs.add(r1);}}
+      if(nascF2>0){const r0=Math.max(0,f.min+nascF2),r1=Math.min(anosRet,f.max+nascF2+1);if(r0<=anosRet){evs.add(r0);if(r1<=anosRet)evs.add(r1);}}
+    });
+  }
+  for(let t=primeiraT;t<anosRet;t+=troca){evs.add(t);if(t+1<=anosRet)evs.add(t+1);}
+  const evArr=[...evs].sort((a,b)=>a-b);
+
+  let tlHTML='<div class="tl-box">';
+  for(let i=0;i<evArr.length-1;i++){
+    const a0=evArr[i],a1=evArr[i+1];if(a0>=anosRet)break;
+    const aportando=a0<anosApEf;
+    const apBIni=aportando?apBHoje*Math.pow(1+infl,a0):0;
+    const apBFim=aportando?apBHoje*Math.pow(1+infl,a1-1):0;
+    const escM =escMensalNom(a0,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
+    const sauN =sauAntesRet?sauMensalNom(a0,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed):0;
+    const iptuN=iptuMensalNom(a0,venalHoje,valorizacao,iptuAvista);
+    const{total:veicA}=veicRecorrenteAno(a0,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl);
+    const veicN=veicA/12;
+    const escM1=escMensalNom(a1-1,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
+    const sauN1=sauAntesRet?sauMensalNom(a1-1,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed):0;
+    const iptuN1=iptuMensalNom(a1-1,venalHoje,valorizacao,iptuAvista);
+    const{total:veicA1}=veicRecorrenteAno(a1-1,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl);
+    const veicN1=veicA1/12;
+    const liqIni=aportando?Math.max(0,apBIni-escM-sauN-iptuN-veicN):0;
+    const liqFim=aportando?Math.max(0,apBFim-escM1-sauN1-iptuN1-veicN1):0;
+    const clsR=!aportando?'ok':liqFim<apBFim*0.3?'danger':liqFim<apBFim*0.6?'warn':'ok';
+    const fases=[];
+    if(escM>0)fases.push('Escola');if(sauN>0)fases.push('Saúde');fases.push('IPTU','IPVA+Seguro');
+    const deds=[];
+    if(escM>0)deds.push('escola: '+fmt(escM)+'→'+fmt(escM1)+'/mês');
+    if(sauN>0)deds.push('saúde: '+fmt(sauN)+'→'+fmt(sauN1)+'/mês');
+    deds.push('IPTU: '+fmt(iptuN)+'→'+fmt(iptuN1)+'/mês');
+    deds.push('veículo: '+fmt(veicN)+'→'+fmt(veicN1)+'/mês');
+    const ct=custoTroca(a0,carroVal,dep,troca,primeiraT,novoHoje,infl);
+    const novoNA=novoHoje*Math.pow(1+infl,a0);
+    const usadoNA=a0===primeiraT?carroVal*Math.pow(1-dep,primeiraT):novoHoje*Math.pow(1+infl,a0-troca)*Math.pow(1-dep,troca);
+    const trocaTag=ct>0?'<div class="tl-troca">🚗 Troca em '+ANO+a0+': −'+fmt(ct)+' do patrimônio (novo: '+fmt(novoNA)+' − usado: '+fmt(usadoNA)+')</div>':'';
+    tlHTML+=
+      '<div class="tl-row">'+
+        '<div>'+
+          '<div class="tl-fase">'+(ANO+a0)+' – '+(ANO+a1)+'</div>'+
+          trocaTag+
+          '<div class="tl-per">'+fases.join(' + ')+'</div>'+
+          '<div class="tl-per" style="color:var(--text-sec);font-style:italic;margin-top:2px">'+deds.join(' · ')+'</div>'+
+        '</div>'+
+        '<div class="tl-right">'+
+          '<div class="tl-liq '+clsR+'">'+(aportando
+            ?'bruto: '+fmt(apBIni)+'→'+fmt(apBFim)+'/mês<br>líquido: '+fmt(liqIni)+'→'+fmt(liqFim)+'/mês'
+            :'aportes encerrados')+
+          '</div>'+
+        '</div>'+
+      '</div>';
+  }
+  tlHTML+='</div>';
+  document.getElementById('aporte-timeline').innerHTML=tlHTML;
+
+  // Gráfico 0
+  if(ch0)ch0.destroy();
+  ch0=new Chart(document.getElementById('g0').getContext('2d'),{
+    data:{labels:acum.labA,datasets:[
+      {type:'bar',label:'Investido na carteira',data:acum.vLq,backgroundColor:'rgba(55,138,221,0.78)',stack:'s',yAxisID:'y'},
+      {type:'bar',label:'Escola',data:acum.vEsc,backgroundColor:'rgba(186,117,23,0.75)',stack:'s',yAxisID:'y'},
+      {type:'bar',label:'Saúde',data:acum.vSau,backgroundColor:'rgba(237,147,177,0.85)',stack:'s',yAxisID:'y'},
+      {type:'bar',label:'IPTU',data:acum.vIptu,backgroundColor:'rgba(100,78,176,0.72)',stack:'s',yAxisID:'y'},
+      {type:'bar',label:'IPVA+Seguro',data:acum.vVeic,backgroundColor:'rgba(29,158,117,0.70)',stack:'s',yAxisID:'y'},
+      {type:'line',label:'Aporte bruto (corrigido IPCA)',data:acum.vBruto,
+       borderColor:'rgba(226,75,74,0.75)',borderWidth:1.5,borderDash:[4,3],
+       pointRadius:0,fill:false,yAxisID:'y',tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
+        label:c=>{if(c.parsed.y===0)return null;return c.dataset.label+': '+fmt(c.parsed.y)+'/mês';},
+        footer:it=>{
+          const bruto=it.find(i=>i.dataset.label==='Aporte bruto (corrigido IPCA)');
+          const liq=it.find(i=>i.dataset.label==='Investido na carteira');
+          const ded=it.filter(i=>i.dataset.type==='bar'&&i.dataset.label!=='Investido na carteira').reduce((s,i)=>s+i.parsed.y,0);
+          const parts=[];
+          if(bruto&&bruto.parsed.y>0)parts.push('Bruto IPCA: '+fmt(bruto.parsed.y)+'/mês');
+          if(liq)parts.push('Investido: '+fmt(liq.parsed.y)+'/mês');
+          if(ded>0)parts.push('Deduzido: '+fmt(ded)+'/mês');
+          return parts.join(' | ');
+        }
+      }}},
+      scales:{
+        x:{stacked:true,ticks:{maxTicksLimit:12,font:{size:10}},title:{display:true,text:'ano',font:{size:10},color:'#888780'}},
+        y:{stacked:true,ticks:{callback:v=>'R$'+(v/1000).toFixed(0)+'k',font:{size:10}},title:{display:true,text:'R$/mês (nominal)',font:{size:10},color:'#888780'}}
+      }
+    }
+  });
+
+  const herC=herVal*Math.pow(1+infl,anosHer);
+  const herAntes=anosHer<anosRet,anoHerNaApo=anosHer-anosRet;
+
+  const fracH=1/3;let vp=0;
+  for(let a=0;a<n;a++)vp+=rendHoje(a,idApo,ri,rp,ip)*12/Math.pow(1+retReal,a+1);
+  const meta=vp/(1-fracH/Math.pow(1+retReal,n));
+  const herF=meta*fracH,gap=totApo-meta,ok=gap>=0;
+
+  const simS=simPat(totApo,anosRet,n,ret,infl,inflMed,inflEsc,ri,rp,ip,idApo,
+    sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
+    venalHoje,valorizacao,iptuAvista,carroVal,dep,troca,primeiraT,novoHoje,
+    ipvaAliq,ipvaAvista,seguroHoje,0,true,999);
+  const simC=simPat(totApo,anosRet,n,ret,infl,inflMed,inflEsc,ri,rp,ip,idApo,
+    sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
+    venalHoje,valorizacao,iptuAvista,carroVal,dep,troca,primeiraT,novoHoje,
+    ipvaAliq,ipvaAvista,seguroHoje,herAntes?0:herC,herAntes,anoHerNaApo);
+
+  const labG=[],vCom=[],vSem=[],vMeta=[];
+  for(let a=0;a<=n;a++){labG.push(''+(idApo+a));vMeta.push(Math.round(herF));vCom.push(simC.pat[a]);vSem.push(simS.pat[a]);}
+  if(ch1)ch1.destroy();
+  ch1=new Chart(document.getElementById('g1').getContext('2d'),{
+    type:'line',data:{labels:labG,datasets:[
+      {label:'Com herança dos pais',data:vCom,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.08)',fill:true,tension:.3,pointRadius:1,borderWidth:2},
+      {label:'Sem herança dos pais',data:vSem,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.05)',fill:true,tension:.3,pointRadius:1,borderWidth:2,borderDash:[5,4]},
+      {label:'Meta herança',data:vMeta,borderColor:'#D85A30',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fmtM(c.parsed.y)}}},
+      scales:{
+        x:{ticks:{maxTicksLimit:14,font:{size:11}},title:{display:true,text:'sua idade',font:{size:11},color:'#888780'}},
+        y:{ticks:{callback:v=>v>=1e6?'R$'+(v/1e6).toFixed(1)+'M':v>=1e3?'R$'+(v/1000).toFixed(0)+'k':'R$0',font:{size:11}}}
+      }
+    }
+  });
+
+  const labR=[],soH=[],saH=[],esH=[],ipH=[],vcH=[],deH=[];
+  const soNs=[],saNs=[],esNs=[],ipNs=[],vcNs=[],deNs=[];
+  const soNc=[],saNc=[],esNc=[],ipNc=[],vcNc=[],deNc=[];
+  for(let a=0;a<=n;a++){
+    const anoAbs=anosRet+a;
+    const rH=rendHoje(a,idApo,ri,rp,ip);
+    const sNom=sauMensalNom(anoAbs,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed);
+    const eNom=escMensalNom(anoAbs,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
+    const ipNom=iptuMensalNom(anoAbs,venalHoje,valorizacao,iptuAvista);
+    const{total:veicA2}=veicRecorrenteAno(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,seguroHoje,infl);
+    const vcNom=veicA2/12;
+    const fi=Math.pow(1+infl,anoAbs);
+    const sHoj=sNom/fi,eHoj=eNom/fi,ipHoj=ipNom/fi,vcHoj=vcNom/fi;
+    const sobH=rH-sHoj-eHoj-ipHoj-vcHoj;
+    const p0s=simS.pat[a],p0c=simC.pat[a];
+    labR.push(''+(idApo+a));
+    soH.push(p0s<=0?0:Math.max(0,Math.round(sobH)));
+    saH.push(p0s<=0?0:Math.round(sHoj));
+    esH.push(p0s<=0?0:Math.round(eHoj));
+    ipH.push(p0s<=0?0:Math.round(ipHoj));
+    vcH.push(p0s<=0?0:Math.round(vcHoj));
+    deH.push(p0s<=0?Math.round(rH):Math.max(0,Math.round(-sobH)));
+    soNs.push(p0s<=0?0:simS.disp[a]);saNs.push(simS.sN[a]);esNs.push(simS.eN[a]);
+    ipNs.push(simS.iptuN[a]);vcNs.push(simS.veicN[a]);
+    deNs.push(p0s<=0?simS.sN[a]+simS.eN[a]+simS.iptuN[a]+simS.veicN[a]:0);
+    soNc.push(p0c<=0?0:simC.disp[a]);saNc.push(simC.sN[a]);esNc.push(simC.eN[a]);
+    ipNc.push(simC.iptuN[a]);vcNc.push(simC.veicN[a]);
+    deNc.push(p0c<=0?simC.sN[a]+simC.eN[a]+simC.iptuN[a]+simC.veicN[a]:0);
+  }
+  D={labR,soH,saH,esH,ipH,vcH,deH,soNs,saNs,esNs,ipNs,vcNs,deNs,
+     soNc,saNc,esNc,ipNc,vcNc,deNc,patSem:simS.pat,patCom:simC.pat};
+
+  const aDefS=deNs.filter(v=>v>0).length,aDefC=deNc.filter(v=>v>0).length;
+  const sbI=soH[0]||0,sbP=soH[Math.min(Math.round(ip-idApo),n)]||0;
+  let aCls='ok',aTxt='';
+  if(aDefS>0&&aDefC>0){aCls='danger';aTxt='Déficit real mesmo com herança em '+aDefC+' ano(s). Aumente a renda mensal.';}
+  else if(aDefS>0&&aDefC===0){aCls='warn';aTxt='Sem herança: déficit em '+aDefS+' ano(s). Com herança o plano se sustenta.';}
+  else if(sbP<rp*0.15){aCls='warn';aTxt='Atenção: no pico a sobra para vida normal fica pequena ('+fmt(sbP)+'/mês). Considere aumentar a renda.';}
+  else{aTxt='Plano equilibrado: início +'+fmt(sbI)+'/mês, pico +'+fmt(sbP)+'/mês de sobra.';}
+  if(duranteAcum){const nTrocas=[...Array(60)].filter((_,k)=>primeiraT+k*troca<anosRet).length;aTxt+=' ⚠ '+nTrocas+' troca(s) de carro antes da aposentadoria — já deduzidas do patrimônio.';}
+  document.getElementById('alerta-renda').innerHTML='<div class="alerta '+aCls+'">'+aTxt+'</div>';
+
+  const pG=pat*Math.pow(1+ret,anosRet);
+  const herFV=herVal>0?(herAntes?herC*Math.pow(1+ret,anosRet-anosHer):herC):0;
+  const maxF=Math.max(pG,acum.pat,herFV,1);
+  document.getElementById('fontes-wrap').innerHTML=[
+    {l:'Patrimônio atual crescido ('+anosRet+' anos)',v:pG,cor:'#378ADD'},
+    {l:'Aportes líquidos acumulados (corrigidos IPCA, trocas deduzidas)',v:acum.pat-pG,cor:'#1D9E75'},
+    {l:herVal>0?(herAntes?'Herança (cresce até aposentadoria)':'Herança dos pais (chega em '+(ANO+anosHer)+')'):'Herança dos pais (zerada)',v:herFV,cor:'#BA7517'},
+  ].map(f=>'<div class="fonte-row"><span class="fonte-label">'+f.l+'</span><div class="fonte-bar-bg"><div class="fonte-bar" style="width:'+Math.min(100,Math.max(0,f.v)/maxF*100).toFixed(0)+'%;background:'+f.cor+'"></div></div><span class="fonte-val">'+fmtM(f.v)+'</span></div>').join('');
+
+  document.getElementById('cards-meta').innerHTML=
+    '<div class="card hi"><div class="clabel">Total na aposentadoria</div><div class="cval">'+fmtM(totApo)+'</div><div class="csub">aportes IPCA · trocas deduzidas</div></div>'+
+    '<div class="card"><div class="clabel">Meta necessária</div><div class="cval">'+fmtM(meta)+'</div><div class="csub">VP renda total + herança</div></div>'+
+    '<div class="card"><div class="clabel">Sobra início (R$ de hoje)</div><div class="cval" style="color:'+(sbI<0?'var(--text-danger)':'var(--text-success)')+'">'+( sbI>=0?'+':'')+fmt(sbI)+'/mês</div><div class="csub">renda − todos os custos fixos</div></div>'+
+    '<div class="card"><div class="clabel">Sobra pico (R$ de hoje)</div><div class="cval" style="color:'+(sbP<0?'var(--text-danger)':sbP<rp*0.15?'var(--text-warning)':'var(--text-success)')+'">'+( sbP>=0?'+':'')+fmt(sbP)+'/mês</div><div class="csub">aos '+ip+' anos</div></div>';
+
+  const badge=document.getElementById('badge-status');
+  if(ok){badge.textContent='Meta patrimonial atingida';badge.className='badge ok';document.getElementById('gap-text').textContent='Superávit de '+fmtM(gap);}
+  else{badge.textContent='Gap patrimonial';badge.className='badge warn';document.getElementById('gap-text').textContent='Faltam '+fmtM(Math.abs(gap))+(herVal>0?' — herança pode cobrir':'');}
+
+  const fimC=simC.pat[simC.pat.length-1],pct=(totApo/meta*100).toFixed(1);
+  document.getElementById('diag-cards').innerHTML=
+    '<div class="card '+(ok?'ok':'warn')+'"><div class="clabel">% da meta patrimonial</div><div class="cval">'+pct+'%</div><div class="csub">aportes IPCA · trocas deduzidas</div></div>'+
+    '<div class="card '+(aDefC===0?'ok':'warn')+'"><div class="clabel">Déficit com herança</div><div class="cval">'+aDefC+' ano'+(aDefC!==1?'s':'')+'</div><div class="csub">'+(aDefC===0?'sustentável':'revisar renda')+'</div></div>'+
+    '<div class="card '+(aDefS===0?'ok':'warn')+'"><div class="clabel">Déficit sem herança</div><div class="cval">'+aDefS+' ano'+(aDefS!==1?'s':'')+'</div><div class="csub">'+(aDefS===0?'sustentável':'patrimônio se esgota')+'</div></div>'+
+    '<div class="card ok"><div class="clabel">Patrimônio final c/ herança</div><div class="cval">'+fmtM(fimC)+'</div><div class="csub">fim do horizonte</div></div>';
+
+  const escNota=semFilhos?'Custos escolares desativados. ':
+    (descAtivo&&nascF2>0?'Desconto de '+g('desc-irmao-pct')+'% no 2º filho (infantil/fundamental/médio) quando ambos estão na escola simultaneamente; faculdade sem desconto. ':'');
+  document.getElementById('nota').textContent=
+    escNota+
+    'Veículo: carro atual com '+idadeCarro+' anos → 1ª troca em '+(ANO+primeiraT)+' (daqui '+primeiraT+' anos). '+
+    'Custo líquido = novo corrigido pelo IPCA − usado depreciado. '+
+    (duranteAcum?'Esta troca ocorre durante os aportes e sai do patrimônio. ':'')+
+    'Aporte bruto: '+fmt(apBHoje)+'/mês hoje, cresce '+(infl*100).toFixed(1)+'% a.a. (IPCA). '+
+    'Patrimônio acumulado em '+anoApo+': '+fmtM(totApo)+'.';
+
+  renderG2();
+}
+
+['idade','idadeconj','expvida','idfilha1','idfilha2nasc',
+ 'pat','aporte','anosap','anosret','ret','infl',
+ 'herval','anosher','rendaini','rendapico','idadepico',
+ 'saude-inicio','saude-ini','saude-pico','saude-idade-pico','infl-med',
+ 'infl-esc','cinfantil','cfund','cmedio','cfacul','desc-irmao-pct',
+ 'iptu-venal','iptu-valorizacao',
+ 'carro-val','carro-idade','carro-dep','carro-troca','carro-novo',
+ 'ipva-aliq','seguro-val'
+].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',calc);});
+['iptu-avista','ipva-avista','sem-filhos','desc-irmao-ativo'
+].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',calc);});
+
+calc();
+</script>
+</body>
+</html>
