@@ -142,6 +142,16 @@ hr{border:none;border-top:0.5px solid var(--border);margin:16px 0}
   </div>
 </div>
 
+<!-- RENDA EXTRA -->
+<div class="section">
+  <p class="stitle">Renda extra na aposentadoria (trabalho / freelance)</p>
+  <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px">Valores em R$ de hoje, corrigidos pelo IPCA. A renda extra cobre os custos de vida primeiro; qualquer sobra mensal é reinvestida automaticamente na carteira.</p>
+  <div class="srow"><span class="slabel">Renda extra mensal (R$ de hoje; 0 = sem renda extra)</span><input type="range" min="0" max="30000" step="500" value="0" id="renda-extra"><span class="sval" id="renda-extra-o"></span></div>
+  <div class="srow" id="renda-extra-ini-row" style="display:none"><span class="slabel">Sua idade ao iniciar a renda extra</span><input type="range" min="50" max="90" step="1" value="55" id="renda-extra-ini"><span class="sval" id="renda-extra-ini-o"></span></div>
+  <div class="srow" id="renda-extra-fim-row" style="display:none"><span class="slabel">Sua idade ao encerrar a renda extra</span><input type="range" min="55" max="95" step="1" value="70" id="renda-extra-fim"><span class="sval" id="renda-extra-fim-o"></span></div>
+  <div id="renda-extra-resumo"></div>
+</div>
+
 <!-- ACUMULAÇÃO -->
 <div class="section">
   <p class="stitle">Acumulação</p>
@@ -300,6 +310,7 @@ hr{border:none;border-top:0.5px solid var(--border);margin:16px 0}
     <span><span class="dot" style="background:rgba(100,78,176,0.8)"></span>IPTU</span>
     <span><span class="dot" style="background:rgba(29,158,117,0.75)"></span>Veículo (IPVA+seguro)</span>
     <span><span class="dot" style="background:rgba(226,75,74,0.75)"></span>Déficit real</span>
+    <span><span class="dot" style="background:#2AB57D"></span>Renda extra (trabalho)</span>
   </div>
   <div style="position:relative;height:280px">
     <canvas id="g2" role="img" aria-label="Decomposição da renda mensal">Decomposição da renda.</canvas>
@@ -426,6 +437,16 @@ function iptuMensalNom(anoAbs,venalHoje,valorizacao,iptuAvista){
   return(calcIPTU(venalHoje*Math.pow(1+valorizacao,anoAbs))*(iptuAvista?0.93:1))/12;
 }
 
+// ── RENDA EXTRA (trabalho na aposentadoria) ──
+// anoRel = anos a partir da aposentadoria (0 = 1º ano)
+// reHoje = valor em R$ de hoje; idReIni e idReFim = idades do investidor
+function rendaExtraMensalNom(anoRel,idApo,reHoje,idReIni,idReFim,infl,anosRet){
+  if(reHoje<=0)return 0;
+  const idAtual=idApo+anoRel;
+  if(idAtual<idReIni||idAtual>idReFim)return 0;
+  return reHoje*Math.pow(1+infl,anosRet+anoRel);
+}
+
 // ═══════════════════════════════════════════════
 // ── ACUMULAÇÃO ──
 // ═══════════════════════════════════════════════
@@ -491,7 +512,8 @@ function simPat(P0,anosRet,n,ret,infl,inflMed,inflEsc,getSacMes,idApo,
                 ipvaAliq,ipvaAvista,pctSeguro,
                 herC,herAntes,anoHerApo,
                 anosAteVenda,
-                carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2){
+                carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2,
+                reHoje,idReIni,idReFim){
   const pat=[],disp=[],sNarr=[],eNarr=[],iptuNarr=[],veicNarr=[];
   let P=P0;
   for(let a=0;a<=n;a++){
@@ -522,7 +544,7 @@ function simPat(P0,anosRet,n,ret,infl,inflMed,inflEsc,getSacMes,idApo,
       sNarr.push(Math.round(sNom));eNarr.push(Math.round(eNom));
       iptuNarr.push(Math.round(ipNom));veicNarr.push(Math.round(vcNom));
     }
-    P=P*(1+ret)-sacNomAno;
+    P=P*(1+ret)-sacNomAno+rendaExtraMensalNom(a,idApo,reHoje||0,idReIni||0,idReFim||0,infl,anosRet)*12;
     if(P<0)P=0;
   }
   return{pat,disp,sN:sNarr,eN:eNarr,iptuN:iptuNarr,veicN:veicNarr};
@@ -530,10 +552,10 @@ function simPat(P0,anosRet,n,ret,infl,inflMed,inflEsc,getSacMes,idApo,
 
 function renderG2(){
   const m=modo;
-  let vs,vsa,ve,vip,vvc,vd,yL,nt;
-  if(m==='hoje'){vs=D.soH;vsa=D.saH;ve=D.esH;vip=D.ipH;vvc=D.vcH;vd=D.deH;yL='R$ de hoje / mês';nt='Poder de compra constante. Quedas abruptas nas linhas tracejadas = trocas de carro saindo do patrimônio.';}
-  else if(m==='sem'){vs=D.soNs;vsa=D.saNs;ve=D.esNs;vip=D.ipNs;vvc=D.vcNs;vd=D.deNs;yL='R$ nominais / mês (sem herança)';nt='Valores nominais SEM herança. Barras vermelhas = patrimônio esgotado.';}
-  else{vs=D.soNc;vsa=D.saNc;ve=D.esNc;vip=D.ipNc;vvc=D.vcNc;vd=D.deNc;yL='R$ nominais / mês (com herança)';nt='Valores nominais COM herança. Compare com "sem herança" para ver o impacto da herança.';}
+  let vs,vsa,ve,vip,vvc,vd,vre,yL,nt;
+  if(m==='hoje'){vs=D.soH;vsa=D.saH;ve=D.esH;vip=D.ipH;vvc=D.vcH;vd=D.deH;vre=D.reH;yL='R$ de hoje / mês';nt='Poder de compra constante. Quedas abruptas nas linhas tracejadas = trocas de carro saindo do patrimônio.';}
+  else if(m==='sem'){vs=D.soNs;vsa=D.saNs;ve=D.esNs;vip=D.ipNs;vvc=D.vcNs;vd=D.deNs;vre=D.reNomRe;yL='R$ nominais / mês (sem herança)';nt='Valores nominais SEM herança. Barras vermelhas = patrimônio esgotado.';}
+  else{vs=D.soNc;vsa=D.saNc;ve=D.esNc;vip=D.ipNc;vvc=D.vcNc;vd=D.deNc;vre=D.reNomRe;yL='R$ nominais / mês (com herança)';nt='Valores nominais COM herança. Compare com "sem herança" para ver o impacto da herança.';}
   document.getElementById('chart-note2').textContent=nt;
   if(ch2)ch2.destroy();
   ch2=new Chart(document.getElementById('g2').getContext('2d'),{
@@ -545,7 +567,8 @@ function renderG2(){
       {type:'bar',label:'IPVA+seguro',data:vvc,backgroundColor:'rgba(29,158,117,0.68)',stack:'r',yAxisID:'y'},
       {type:'bar',label:'Déficit real',data:vd,backgroundColor:'rgba(226,75,74,0.72)',stack:'r',yAxisID:'y'},
       {type:'line',label:'Patrimônio c/ herança',data:D.patCom,borderColor:'#378ADD',borderWidth:2,borderDash:[6,3],pointRadius:0,fill:false,yAxisID:'yp',tension:.3},
-      {type:'line',label:'Patrimônio s/ herança',data:D.patSem,borderColor:'#1D9E75',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false,yAxisID:'yp',tension:.3}
+      {type:'line',label:'Patrimônio s/ herança',data:D.patSem,borderColor:'#1D9E75',borderWidth:1.5,borderDash:[4,4],pointRadius:0,fill:false,yAxisID:'yp',tension:.3},
+      {type:'line',label:'Renda extra (trabalho)',data:vre,borderColor:'#2AB57D',borderWidth:2,borderDash:[5,3],pointRadius:0,fill:false,yAxisID:'y',tension:0}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
@@ -621,6 +644,9 @@ function calc(){
   const carro2Ativo=gc('carro2-ativo');
   const carro2Val=g('carro2-val'),dep2=g('carro2-dep')/100,troca2=g('carro2-troca'),novoHoje2=g('carro2-novo');
   const primeiraT2=troca2; // second car starts new (age 0), so first replacement is in troca2 years
+  const reHoje=g('renda-extra');
+  const idReIni=g('renda-extra-ini');
+  const idReFim=Math.max(idReIni,g('renda-extra-fim'));
 
   const idadeCarroEf=Math.min(idadeCarro,troca-1);
   const primeiraT=troca-idadeCarroEf;
@@ -668,6 +694,12 @@ function calc(){
   s('herval-o',herVal>0?fmt(herVal):'R$ 0');
   s('anosher-o',anosHer+' anos → '+(ANO+anosHer)+' (você terá '+(idade+anosHer)+' anos)');
   s('rendaini-o',fmt(ri)+'/mês hoje');s('rendapico-o',fmt(rp)+'/mês hoje');s('idadepico-o','aos '+ip+' anos');
+  s('renda-extra-o',reHoje>0?fmt(reHoje)+'/mês hoje (+ IPCA)':'sem renda extra');
+  s('renda-extra-ini-o','aos '+idReIni+' anos ('+(ANO+idReIni-idade)+' anos a partir de hoje)');
+  s('renda-extra-fim-o','até '+idReFim+' anos ('+(ANO+idReFim-idade)+')');
+  const mostraRE=reHoje>0;
+  document.getElementById('renda-extra-ini-row').style.display=mostraRE?'':'none';
+  document.getElementById('renda-extra-fim-row').style.display=mostraRE?'':'none';
   s('sobra-ini-o',fmt(sobraIni)+'/mês hoje');s('sobra-fim-o',fmt(sobraFim)+'/mês hoje');
   s('saude-inicio-o',(sIA===0?'imediato':sIA+' anos → '+(ANO+sIA))+(sauAntesRet?' ⚠ deduz aportes':' — apenas na aposentadoria'));
   s('saude-ini-o',fmt(sIni)+'/mês hoje');s('saude-pico-o',fmt(sPico)+'/mês hoje');s('saude-idade-pico-o','aos '+sIPico+' anos');
@@ -773,6 +805,7 @@ function calc(){
     '<div><div class="pl">1ª troca carro 1</div><div class="pv">'+(ANO+primeiraT)+'</div><div class="ps">'+(duranteAcum?'⚠ sai do patrimônio durante aportes':'na aposentadoria ou após venda')+'</div></div>'+
     '<div><div class="pl">Venda do(s) carro(s)</div><div class="pv">aos '+idSemCarro+' anos</div><div class="ps">'+(ANO+anosAteVenda)+' · +'+fmt(valVenda1+valVenda2)+' ao patrimônio</div></div>'+
     (carro2Ativo?'<div><div class="pl">2º carro habilitado</div><div class="pv">1ª troca em '+(ANO+primeiraT2)+'</div><div class="ps">valor hoje: '+fmt(carro2Val)+'</div></div>':'');
+  if(reHoje>0){pbHTML+='<div><div class="pl">Renda extra (trabalho)</div><div class="pv">'+fmt(reHoje)+'/mês</div><div class="ps">dos '+idReIni+' aos '+idReFim+' anos</div></div>';}
   document.getElementById('perfil-box').innerHTML=pbHTML;
 
   // ── ACUMULAÇÃO ──
@@ -903,12 +936,14 @@ function calc(){
     sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
     venalHoje,valorizacao,iptuAvista,carroVal,dep,troca,primeiraT,novoHoje,
     ipvaAliq,ipvaAvista,pctSeguro,0,true,999,
-    anosAteVenda,carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2);
+    anosAteVenda,carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2,
+    reHoje,idReIni,idReFim);
   const simC=simPat(totApo,anosRet,n,ret,infl,inflMed,inflEsc,getSacMensalNom,idApo,
     sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
     venalHoje,valorizacao,iptuAvista,carroVal,dep,troca,primeiraT,novoHoje,
     ipvaAliq,ipvaAvista,pctSeguro,herAntes?0:herC,herAntes,anoHerNaApo,
-    anosAteVenda,carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2);
+    anosAteVenda,carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2,
+    reHoje,idReIni,idReFim);
 
   // ── DURAÇÃO DO PATRIMÔNIO ──
   const idxDurS=simS.pat.findIndex(v=>v===0);
@@ -934,7 +969,7 @@ function calc(){
     }
   });
 
-  const labR=[],soH=[],saH=[],esH=[],ipH=[],vcH=[],deH=[];
+  const labR=[],soH=[],saH=[],esH=[],ipH=[],vcH=[],deH=[],reH=[],reNomRe=[];
   const soNs=[],saNs=[],esNs=[],ipNs=[],vcNs=[],deNs=[];
   const soNc=[],saNc=[],esNc=[],ipNc=[],vcNc=[],deNc=[];
   for(let a=0;a<=n;a++){
@@ -950,6 +985,8 @@ function calc(){
     const sHoj=sNom/fi,eHoj=eNom/fi,ipHoj=ipNom/fi,vcHoj=vcNom/fi;
     const sobH=rH-sHoj-eHoj-ipHoj-vcHoj;
     const p0s=simS.pat[a],p0c=simC.pat[a];
+    const reNomMes=rendaExtraMensalNom(a,idApo,reHoje,idReIni,idReFim,infl,anosRet);
+    const reHojMes=reNomMes>0?reNomMes/fi:0;
     labR.push(''+(idApo+a));
     soH.push(p0s<=0?0:Math.max(0,Math.round(sobH)));
     saH.push(p0s<=0?0:Math.round(sHoj));
@@ -957,6 +994,8 @@ function calc(){
     ipH.push(p0s<=0?0:Math.round(ipHoj));
     vcH.push(p0s<=0?0:Math.round(vcHoj));
     deH.push(p0s<=0?Math.round(rH):Math.max(0,Math.round(-sobH)));
+    reH.push(Math.round(reHojMes));
+    reNomRe.push(Math.round(reNomMes));
     soNs.push(p0s<=0?0:simS.disp[a]);saNs.push(simS.sN[a]);esNs.push(simS.eN[a]);
     ipNs.push(simS.iptuN[a]);vcNs.push(simS.veicN[a]);
     deNs.push(p0s<=0?simS.sN[a]+simS.eN[a]+simS.iptuN[a]+simS.veicN[a]:0);
@@ -964,7 +1003,7 @@ function calc(){
     ipNc.push(simC.iptuN[a]);vcNc.push(simC.veicN[a]);
     deNc.push(p0c<=0?simC.sN[a]+simC.eN[a]+simC.iptuN[a]+simC.veicN[a]:0);
   }
-  D={labR,soH,saH,esH,ipH,vcH,deH,soNs,saNs,esNs,ipNs,vcNs,deNs,
+  D={labR,soH,saH,esH,ipH,vcH,deH,reH,reNomRe,soNs,saNs,esNs,ipNs,vcNs,deNs,
      soNc,saNc,esNc,ipNc,vcNc,deNc,patSem:simS.pat,patCom:simC.pat};
 
   const aDefS=deNs.filter(v=>v>0).length,aDefC=deNc.filter(v=>v>0).length;
@@ -996,7 +1035,24 @@ function calc(){
   }
   if(duranteAcum){const nTrocas=[...Array(anosAteVenda)].filter((_,k)=>primeiraT+k*troca<Math.min(anosRet,anosAteVenda)).length;aTxt+=' ⚠ '+nTrocas+' troca(s) de carro 1 antes da aposentadoria — já deduzidas do patrimônio.';}
   if(carro2Ativo&&primeiraT2<anosRet&&primeiraT2<anosAteVenda){const nTrocas2=[...Array(anosAteVenda)].filter((_,k)=>primeiraT2+k*troca2<Math.min(anosRet,anosAteVenda)).length;aTxt+=' ⚠ '+nTrocas2+' troca(s) de carro 2 antes da aposentadoria.';}
+  if(reHoje>0){aTxt+=' 💼 Renda extra de trabalho: '+fmt(reHoje)+'/mês (R$ hoje) dos '+idReIni+' aos '+idReFim+' anos — reduz saque da carteira e reinveste sobras.';}
   document.getElementById('alerta-renda').innerHTML='<div class="alerta '+aCls+'">'+aTxt+'</div>';
+  // ── Resumo renda extra ──
+  if(reHoje>0){
+    const reNomIni=rendaExtraMensalNom(0,idApo,reHoje,idReIni,idReFim,infl,anosRet);
+    const anoIniRE=ANO+(idReIni-idade);
+    const anoFimRE=ANO+(idReFim-idade);
+    const anoRelFim=Math.min(idReFim-idApo,n);
+    const reNomFim=rendaExtraMensalNom(anoRelFim,idApo,reHoje,idReIni,idReFim,infl,anosRet);
+    const totalAnosRE=Math.max(0,idReFim-idReIni);
+    document.getElementById('renda-extra-resumo').innerHTML=
+      '<div class="flag-box" style="margin-top:10px">'+
+      '💼 <strong>Renda extra ativa: '+anoIniRE+' → '+anoFimRE+' ('+totalAnosRE+' anos)</strong><br>'+
+      'Valor nominal no 1º ano: '+fmt(reNomIni)+'/mês · no último ano: '+fmt(reNomFim)+'/mês (corrigido IPCA)'+
+      '</div>';
+  }else{
+    document.getElementById('renda-extra-resumo').innerHTML='';
+  }
 
   const pG=pat*Math.pow(1+ret,anosRet);
   const herFV=herVal>0?(herAntes?herC*Math.pow(1+ret,anosRet-anosHer):herC):0;
@@ -1056,7 +1112,8 @@ function calc(){
  'carro-val','carro-idade','carro-dep','carro-troca','carro-novo',
  'ipva-aliq','seguro-pct','carro-sem-idade',
  'carro2-val','carro2-dep','carro2-troca','carro2-novo',
- 'sobra-ini','sobra-fim'
+ 'sobra-ini','sobra-fim',
+ 'renda-extra','renda-extra-ini','renda-extra-fim'
 ].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',calc);});
 ['iptu-avista','ipva-avista','sem-filhos','desc-irmao-ativo','carro2-ativo','modo-renda-variavel'
 ].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',calc);});
