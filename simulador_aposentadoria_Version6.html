@@ -612,7 +612,7 @@ function calc(){
   const anosAteVenda=Math.max(0,idSemCarro-idade);
   const carro2Ativo=gc('carro2-ativo');
   const carro2Val=g('carro2-val'),dep2=g('carro2-dep')/100,troca2=g('carro2-troca'),novoHoje2=g('carro2-novo');
-  const primeiraT2=troca2; // second car is treated as new (age 0)
+  const primeiraT2=troca2; // second car starts new (age 0), so first replacement is in troca2 years
 
   const idadeCarroEf=Math.min(idadeCarro,troca-1);
   const primeiraT=troca-idadeCarroEf;
