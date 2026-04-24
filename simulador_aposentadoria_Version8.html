@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulador de Aposentadoria v7</title>
+<title>Simulador de Aposentadoria v8</title>
 <style>
 :root{
   --bg-page:#eeedea;--bg-card:#ffffff;--bg-sec:#f5f4f0;--bg-ter:#eeedea;
@@ -128,9 +128,18 @@ hr{border:none;border-top:0.5px solid var(--border);margin:16px 0}
 <div class="section">
   <p class="stitle">Renda mensal total na aposentadoria — R$ de hoje</p>
   <p style="font-size:12px;color:var(--text-sec);margin-bottom:12px">Valor total sacado da carteira. O gráfico mostra a sobra após deduzir todos os custos fixos (saúde, escola, IPTU, veículo).</p>
-  <div class="srow"><span class="slabel">Renda mensal inicial (1º ano)</span><input type="range" min="5000" max="100000" step="500" value="12000" id="rendaini"><span class="sval" id="rendaini-o"></span></div>
-  <div class="srow"><span class="slabel">Renda mensal no pico (maior necessidade)</span><input type="range" min="5000" max="150000" step="500" value="20000" id="rendapico"><span class="sval" id="rendapico-o"></span></div>
-  <div class="srow"><span class="slabel">Sua idade no pico da renda</span><input type="range" min="60" max="90" step="1" value="75" id="idadepico"><span class="sval" id="idadepico-o"></span></div>
+  <div class="check-row"><input type="checkbox" id="modo-renda-variavel"><label for="modo-renda-variavel">Renda variável — baseada em custos reais + sobra desejada</label></div>
+  <div id="renda-fixa-wrap">
+    <div class="srow"><span class="slabel">Renda mensal inicial (1º ano)</span><input type="range" min="5000" max="100000" step="500" value="12000" id="rendaini"><span class="sval" id="rendaini-o"></span></div>
+    <div class="srow"><span class="slabel">Renda mensal no pico (maior necessidade)</span><input type="range" min="5000" max="150000" step="500" value="20000" id="rendapico"><span class="sval" id="rendapico-o"></span></div>
+    <div class="srow"><span class="slabel">Sua idade no pico da renda</span><input type="range" min="60" max="90" step="1" value="75" id="idadepico"><span class="sval" id="idadepico-o"></span></div>
+  </div>
+  <div id="renda-var-wrap" style="display:none">
+    <div class="flag-box">Saque mensal = todos os custos fixos do período (saúde, escola, IPTU, veículo) + sobra desejada, corrigidos pelo IPCA.</div>
+    <div class="srow"><span class="slabel">Sobra no início da aposentadoria (R$ de hoje)</span><input type="range" min="1000" max="30000" step="500" value="5000" id="sobra-ini"><span class="sval" id="sobra-ini-o"></span></div>
+    <div class="srow"><span class="slabel">Sobra no final da aposentadoria (R$ de hoje)</span><input type="range" min="500" max="20000" step="500" value="2000" id="sobra-fim"><span class="sval" id="sobra-fim-o"></span></div>
+    <div id="renda-var-resumo"></div>
+  </div>
 </div>
 
 <!-- ACUMULAÇÃO -->
@@ -475,7 +484,7 @@ function calcAcumulacao(anosRet,anosApEf,ret,infl,inflMed,inflEsc,
 // ═══════════════════════════════════════════════
 // ── SIMULAÇÃO PATRIMÔNIO (aposentadoria) ──
 // ═══════════════════════════════════════════════
-function simPat(P0,anosRet,n,ret,infl,inflMed,inflEsc,ri,rp,ip,idApo,
+function simPat(P0,anosRet,n,ret,infl,inflMed,inflEsc,getSacMes,idApo,
                 sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
                 venalHoje,valorizacao,iptuAvista,
                 carroVal,dep,troca,primeiraT,novoHoje,
@@ -497,8 +506,7 @@ function simPat(P0,anosRet,n,ret,infl,inflMed,inflEsc,ri,rp,ip,idApo,
     const ct1=custoTroca(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,infl,anosAteVenda);
     const ct2=carro2Ativo?custoTroca(anoAbs,carro2Val,dep2,troca2,primeiraT2,novoHoje2,infl,anosAteVenda):0;
     P=Math.max(0,P-ct1-ct2);
-    const rH=rendHoje(a,idApo,ri,rp,ip);
-    const sacNomAno=rH*12*Math.pow(1+infl,anoAbs);
+    const sacNomAno=getSacMes(a)*12;
     const sNom=sauMensalNom(anoAbs,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed);
     const eNom=escMensalNom(anoAbs,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
     const ipNom=iptuMensalNom(anoAbs,venalHoje,valorizacao,iptuAvista);
@@ -623,6 +631,28 @@ function calc(){
   const sauAntesRet=sIA<anosRet;
   const duranteAcum=primeiraT<anosRet&&primeiraT<anosAteVenda;
 
+  // ── MODO RENDA VARIÁVEL ──
+  const modoRendaVar=gc('modo-renda-variavel');
+  const sobraIni=g('sobra-ini'),sobraFim=g('sobra-fim');
+  document.getElementById('renda-fixa-wrap').style.display=modoRendaVar?'none':'block';
+  document.getElementById('renda-var-wrap').style.display=modoRendaVar?'block':'none';
+
+  // Saque mensal nominal: a = anos a partir da aposentadoria (0 = 1º ano)
+  const getSacMensalNom=(a)=>{
+    const anoAbs=anosRet+a;
+    if(!modoRendaVar){
+      return rendHoje(a,idApo,ri,rp,ip)*Math.pow(1+infl,anoAbs);
+    }
+    const sobraHj=sobraIni+(sobraFim-sobraIni)*(a/Math.max(1,n));
+    const sobraReal=sobraHj*Math.pow(1+infl,anoAbs);
+    const sNom=sauMensalNom(anoAbs,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed);
+    const eNom=escMensalNom(anoAbs,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
+    const ipNom=iptuMensalNom(anoAbs,venalHoje,valorizacao,iptuAvista);
+    const{total:va1}=veicRecorrenteAno(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,pctSeguro,infl,anosAteVenda);
+    const{total:va2}=carro2Ativo?veicRecorrenteAno(anoAbs,carro2Val,dep2,troca2,primeiraT2,novoHoje2,ipvaAliq,ipvaAvista,pctSeguro,infl,anosAteVenda):{total:0};
+    return sNom+eNom+ipNom+(va1+va2)/12+sobraReal;
+  };
+
   atualizaUIFilhos();
 
   const s=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
@@ -638,6 +668,7 @@ function calc(){
   s('herval-o',herVal>0?fmt(herVal):'R$ 0');
   s('anosher-o',anosHer+' anos → '+(ANO+anosHer)+' (você terá '+(idade+anosHer)+' anos)');
   s('rendaini-o',fmt(ri)+'/mês hoje');s('rendapico-o',fmt(rp)+'/mês hoje');s('idadepico-o','aos '+ip+' anos');
+  s('sobra-ini-o',fmt(sobraIni)+'/mês hoje');s('sobra-fim-o',fmt(sobraFim)+'/mês hoje');
   s('saude-inicio-o',(sIA===0?'imediato':sIA+' anos → '+(ANO+sIA))+(sauAntesRet?' ⚠ deduz aportes':' — apenas na aposentadoria'));
   s('saude-ini-o',fmt(sIni)+'/mês hoje');s('saude-pico-o',fmt(sPico)+'/mês hoje');s('saude-idade-pico-o','aos '+sIPico+' anos');
   s('infl-med-o',(inflMed*100).toFixed(1).replace('.',',')+'% a.a. médica');
@@ -864,20 +895,26 @@ function calc(){
   const herAntes=anosHer<anosRet,anoHerNaApo=anosHer-anosRet;
 
   const fracH=1/3;let vp=0;
-  for(let a=0;a<n;a++)vp+=rendHoje(a,idApo,ri,rp,ip)*12/Math.pow(1+retReal,a+1);
+  for(let a=0;a<n;a++){const sacH=getSacMensalNom(a)/Math.pow(1+infl,anosRet+a);vp+=sacH*12/Math.pow(1+retReal,a+1);}
   const meta=vp/(1-fracH/Math.pow(1+retReal,n));
   const herF=meta*fracH,gap=totApo-meta,ok=gap>=0;
 
-  const simS=simPat(totApo,anosRet,n,ret,infl,inflMed,inflEsc,ri,rp,ip,idApo,
+  const simS=simPat(totApo,anosRet,n,ret,infl,inflMed,inflEsc,getSacMensalNom,idApo,
     sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
     venalHoje,valorizacao,iptuAvista,carroVal,dep,troca,primeiraT,novoHoje,
     ipvaAliq,ipvaAvista,pctSeguro,0,true,999,
     anosAteVenda,carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2);
-  const simC=simPat(totApo,anosRet,n,ret,infl,inflMed,inflEsc,ri,rp,ip,idApo,
+  const simC=simPat(totApo,anosRet,n,ret,infl,inflMed,inflEsc,getSacMensalNom,idApo,
     sIA,sIni,sPico,sIPico,idF1,nascF2,c,semFilhos,descAtivo,descPct,
     venalHoje,valorizacao,iptuAvista,carroVal,dep,troca,primeiraT,novoHoje,
     ipvaAliq,ipvaAvista,pctSeguro,herAntes?0:herC,herAntes,anoHerNaApo,
     anosAteVenda,carro2Ativo,carro2Val,dep2,troca2,primeiraT2,novoHoje2);
+
+  // ── DURAÇÃO DO PATRIMÔNIO ──
+  const idxDurS=simS.pat.findIndex(v=>v===0);
+  const durSAnos=idxDurS<0?-1:idxDurS;
+  const idxDurC=simC.pat.findIndex(v=>v===0);
+  const durCAnos=idxDurC<0?-1:idxDurC;
 
   const labG=[],vCom=[],vSem=[],vMeta=[];
   for(let a=0;a<=n;a++){labG.push(''+(idApo+a));vMeta.push(Math.round(herF * Math.pow(1 + infl, a)));vCom.push(simC.pat[a]);vSem.push(simS.pat[a]);}
@@ -902,14 +939,14 @@ function calc(){
   const soNc=[],saNc=[],esNc=[],ipNc=[],vcNc=[],deNc=[];
   for(let a=0;a<=n;a++){
     const anoAbs=anosRet+a;
-    const rH=rendHoje(a,idApo,ri,rp,ip);
+    const fi=Math.pow(1+infl,anoAbs);
+    const rH=getSacMensalNom(a)/fi;
     const sNom=sauMensalNom(anoAbs,sIA,sIni,sPico,sIPico,idApo,anosRet,inflMed);
     const eNom=escMensalNom(anoAbs,idF1,nascF2,c,inflEsc,semFilhos,descAtivo,descPct);
     const ipNom=iptuMensalNom(anoAbs,venalHoje,valorizacao,iptuAvista);
     const{total:veicA2}=veicRecorrenteAno(anoAbs,carroVal,dep,troca,primeiraT,novoHoje,ipvaAliq,ipvaAvista,pctSeguro,infl,anosAteVenda);
     const{total:veicA2b}=carro2Ativo?veicRecorrenteAno(anoAbs,carro2Val,dep2,troca2,primeiraT2,novoHoje2,ipvaAliq,ipvaAvista,pctSeguro,infl,anosAteVenda):{total:0};
     const vcNom=(veicA2+veicA2b)/12;
-    const fi=Math.pow(1+infl,anoAbs);
     const sHoj=sNom/fi,eHoj=eNom/fi,ipHoj=ipNom/fi,vcHoj=vcNom/fi;
     const sobH=rH-sHoj-eHoj-ipHoj-vcHoj;
     const p0s=simS.pat[a],p0c=simC.pat[a];
@@ -935,8 +972,28 @@ function calc(){
   let aCls='ok',aTxt='';
   if(aDefS>0&&aDefC>0){aCls='danger';aTxt='Déficit real mesmo com herança em '+aDefC+' ano(s). Aumente a renda mensal.';}
   else if(aDefS>0&&aDefC===0){aCls='warn';aTxt='Sem herança: déficit em '+aDefS+' ano(s). Com herança o plano se sustenta.';}
-  else if(sbP<rp*0.15){aCls='warn';aTxt='Atenção: no pico a sobra para vida normal fica pequena ('+fmt(sbP)+'/mês). Considere aumentar a renda.';}
+  else if(!modoRendaVar&&sbP<rp*0.15){aCls='warn';aTxt='Atenção: no pico a sobra para vida normal fica pequena ('+fmt(sbP)+'/mês). Considere aumentar a renda.';}
   else{aTxt='Plano equilibrado: início +'+fmt(sbI)+'/mês, pico +'+fmt(sbP)+'/mês de sobra.';}
+  if(modoRendaVar){
+    const sacIniHoje=getSacMensalNom(0)/Math.pow(1+infl,anosRet);
+    const aPicoV=Math.min(n,Math.max(0,Math.round(ip-idApo)));
+    const sacPicoHoje=getSacMensalNom(aPicoV)/Math.pow(1+infl,anosRet+aPicoV);
+    const durSStr=durSAnos<0?'sustentável no horizonte':durSAnos+' ano'+(durSAnos!==1?'s':'');
+    const durCStr=durCAnos<0?'sustentável':durCAnos+' ano'+(durCAnos!==1?'s':'');
+    aTxt+=(aTxt?' | ':'')+'Modo variável — 1º ano ≈ '+fmt(sacIniHoje)+'/mês · pico ('+ip+' anos) ≈ '+fmt(sacPicoHoje)+'/mês. Patrimônio dura '+durSStr+' s/herança, '+durCStr+' c/herança.';
+    // Resumo dentro da seção de renda
+    const sacR0=sacIniHoje,sacRP=sacPicoHoje;
+    const custosHoje0=sacR0-sobraIni;
+    const sobraHojeP=sobraIni+(sobraFim-sobraIni)*(aPicoV/Math.max(1,n));
+    const custosHojeP=sacRP-sobraHojeP;
+    document.getElementById('renda-var-resumo').innerHTML=
+      '<div class="flag-box" style="margin-top:10px">'+
+      '📊 <strong>Saque estimado no 1º ano:</strong> '+fmt(sacR0)+'/mês (R$ de hoje) — sobra '+fmt(sobraIni)+' + custos fixos '+fmt(custosHoje0)+'<br>'+
+      '📊 <strong>Saque estimado no pico ('+ip+' anos):</strong> '+fmt(sacRP)+'/mês — sobra '+fmt(sobraHojeP)+' + custos fixos '+fmt(custosHojeP)+
+      '</div>';
+  }else{
+    const el=document.getElementById('renda-var-resumo');if(el)el.innerHTML='';
+  }
   if(duranteAcum){const nTrocas=[...Array(anosAteVenda)].filter((_,k)=>primeiraT+k*troca<Math.min(anosRet,anosAteVenda)).length;aTxt+=' ⚠ '+nTrocas+' troca(s) de carro 1 antes da aposentadoria — já deduzidas do patrimônio.';}
   if(carro2Ativo&&primeiraT2<anosRet&&primeiraT2<anosAteVenda){const nTrocas2=[...Array(anosAteVenda)].filter((_,k)=>primeiraT2+k*troca2<Math.min(anosRet,anosAteVenda)).length;aTxt+=' ⚠ '+nTrocas2+' troca(s) de carro 2 antes da aposentadoria.';}
   document.getElementById('alerta-renda').innerHTML='<div class="alerta '+aCls+'">'+aTxt+'</div>';
@@ -953,19 +1010,27 @@ function calc(){
   document.getElementById('cards-meta').innerHTML=
     '<div class="card hi"><div class="clabel">Total na aposentadoria</div><div class="cval">'+fmtM(totApo)+'</div><div class="csub">aportes IPCA · trocas deduzidas</div></div>'+
     '<div class="card"><div class="clabel">Meta necessária</div><div class="cval">'+fmtM(meta)+'</div><div class="csub">VP renda total + herança</div></div>'+
-    '<div class="card"><div class="clabel">Sobra início (R$ de hoje)</div><div class="cval" style="color:'+(sbI<0?'var(--text-danger)':'var(--text-success)')+'">'+( sbI>=0?'+':'')+fmt(sbI)+'/mês</div><div class="csub">renda − todos os custos fixos</div></div>'+
-    '<div class="card"><div class="clabel">Sobra pico (R$ de hoje)</div><div class="cval" style="color:'+(sbP<0?'var(--text-danger)':sbP<rp*0.15?'var(--text-warning)':'var(--text-success)')+'">'+( sbP>=0?'+':'')+fmt(sbP)+'/mês</div><div class="csub">aos '+ip+' anos</div></div>';
+    '<div class="card"><div class="clabel">Sobra início (R$ de hoje)</div><div class="cval" style="color:'+(sbI<0?'var(--text-danger)':'var(--text-success)')+'">'+( sbI>=0?'+':'')+fmt(sbI)+'/mês</div><div class="csub">'+(modoRendaVar?'sobra definida':'renda − todos os custos fixos')+'</div></div>'+
+    '<div class="card"><div class="clabel">Sobra pico (R$ de hoje)</div><div class="cval" style="color:'+(sbP<0?'var(--text-danger)':(!modoRendaVar&&sbP<rp*0.15)?'var(--text-warning)':'var(--text-success)')+'">'+( sbP>=0?'+':'')+fmt(sbP)+'/mês</div><div class="csub">aos '+ip+' anos</div></div>';
 
   const badge=document.getElementById('badge-status');
   if(ok){badge.textContent='Meta patrimonial atingida';badge.className='badge ok';document.getElementById('gap-text').textContent='Superávit de '+fmtM(gap);}
   else{badge.textContent='Gap patrimonial';badge.className='badge warn';document.getElementById('gap-text').textContent='Faltam '+fmtM(Math.abs(gap))+(herVal>0?' — herança pode cobrir':'');}
 
   const fimC=simC.pat[simC.pat.length-1],pct=(totApo/meta*100).toFixed(1);
-  document.getElementById('diag-cards').innerHTML=
+  const durSStr=durSAnos<0?'sustentável no horizonte':durSAnos+' ano'+(durSAnos!==1?'s':'');
+  const durCStr=durCAnos<0?'sustentável no horizonte':durCAnos+' ano'+(durCAnos!==1?'s':'');
+  let diagHTML=
     '<div class="card '+(ok?'ok':'warn')+'"><div class="clabel">% da meta patrimonial</div><div class="cval">'+pct+'%</div><div class="csub">aportes IPCA · trocas deduzidas</div></div>'+
     '<div class="card '+(aDefC===0?'ok':'warn')+'"><div class="clabel">Déficit com herança</div><div class="cval">'+aDefC+' ano'+(aDefC!==1?'s':'')+'</div><div class="csub">'+(aDefC===0?'sustentável':'revisar renda')+'</div></div>'+
     '<div class="card '+(aDefS===0?'ok':'warn')+'"><div class="clabel">Déficit sem herança</div><div class="cval">'+aDefS+' ano'+(aDefS!==1?'s':'')+'</div><div class="csub">'+(aDefS===0?'sustentável':'patrimônio se esgota')+'</div></div>'+
     '<div class="card ok"><div class="clabel">Patrimônio final c/ herança</div><div class="cval">'+fmtM(fimC)+'</div><div class="csub">fim do horizonte</div></div>';
+  if(modoRendaVar){
+    diagHTML+=
+      '<div class="card '+(durCAnos<0?'ok':'warn')+'"><div class="clabel">Patrimônio dura c/ herança</div><div class="cval">'+durCStr+'</div><div class="csub">'+(durCAnos<0?'plano sustentável':'antes de se esgotar')+'</div></div>'+
+      '<div class="card '+(durSAnos<0?'ok':'warn')+'"><div class="clabel">Patrimônio dura s/ herança</div><div class="cval">'+durSStr+'</div><div class="csub">'+(durSAnos<0?'plano sustentável':'antes de se esgotar')+'</div></div>';
+  }
+  document.getElementById('diag-cards').innerHTML=diagHTML;
 
   const escNota=semFilhos?'Custos escolares desativados. ':
     (descAtivo&&nascF2>0?'Desconto de '+g('desc-irmao-pct')+'% no 2º filho (infantil/fundamental/médio) quando ambos estão na escola simultaneamente; faculdade sem desconto. ':'');
@@ -990,9 +1055,10 @@ function calc(){
  'iptu-venal','iptu-valorizacao',
  'carro-val','carro-idade','carro-dep','carro-troca','carro-novo',
  'ipva-aliq','seguro-pct','carro-sem-idade',
- 'carro2-val','carro2-dep','carro2-troca','carro2-novo'
+ 'carro2-val','carro2-dep','carro2-troca','carro2-novo',
+ 'sobra-ini','sobra-fim'
 ].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',calc);});
-['iptu-avista','ipva-avista','sem-filhos','desc-irmao-ativo','carro2-ativo'
+['iptu-avista','ipva-avista','sem-filhos','desc-irmao-ativo','carro2-ativo','modo-renda-variavel'
 ].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('change',calc);});
 
 calc();
